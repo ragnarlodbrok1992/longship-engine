@@ -43,15 +43,31 @@ int main(int argc, char* argv[])
   SDL_UpdateWindowSurface(main_window);
 
   // Events
-  SDL_Event e;
+  SDL_Event main_event;
   bool quit_engine = false;
   while (!quit_engine)
   {
-    while (SDL_PollEvent(&e))
+    while (SDL_PollEvent(&main_event))
     {
-      if (e.type == SDL_QUIT)
+      switch (main_event.type)
       {
-        quit_engine = true;
+        case SDL_QUIT:
+          {
+            quit_engine = true;
+            break;
+          }
+        case SDL_KEYDOWN:
+          {
+            switch (main_event.key.keysym.sym)
+            {
+              case SDLK_ESCAPE:
+                {
+                  quit_engine = true;
+                  break;
+                }
+            }
+            break;
+          }
       }
     }
   }

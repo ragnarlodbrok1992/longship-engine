@@ -1,0 +1,4 @@
+1. Create and draw tileset - chess like.
+2. Move this tileset to isometric view.
+3. Calculate clicks and make isotiles selectable.
+
