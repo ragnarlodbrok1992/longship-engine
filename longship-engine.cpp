@@ -148,8 +148,6 @@ int main(int argc, char* argv[])
     for (int y = 0; y < TILESET_WIDTH; y++)
       {
         IsoTile* curr_tile = &iso_tiles[x][y];
-        // printf("x: %d, y: %d\n", x, y);
-        // printf("%p\n", curr_tile);
 
         curr_tile->nw.x = 0;
         curr_tile->nw.y = 0;
