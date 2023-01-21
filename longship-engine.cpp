@@ -8,6 +8,11 @@
 #include <stdio.h>
 #include <cstdint>
 
+#define TILE_HEIGHT 40
+#define TILE_WIDTH 40
+#define TILESET_HEIGHT 10
+#define TILESET_WIDTH 10
+
 typedef struct
 {
   uint8_t R;
@@ -22,10 +27,40 @@ typedef struct
   int y;
 } Point;
 
+typedef struct
+{
+  int id;
+
+  Point nw;
+  Point ne;
+  Point se;
+  Point sw;
+} IsoTile;
+
 void RenderLine(SDL_Renderer* renderer, Color color, Point start, Point end)
 {
   SDL_SetRenderDrawColor(renderer, color.R, color.G, color.B, color.A);
   SDL_RenderDrawLine(renderer, start.x, start.y, end.x, end.y);
+}
+
+void RenderIsoTile(SDL_Renderer* renderer, Color& color, Point& nw, Point& ne, Point& se, Point& sw)
+{
+  RenderLine(renderer, color, nw, ne);
+  RenderLine(renderer, color, ne, se);
+  RenderLine(renderer, color, se, sw);
+  RenderLine(renderer, color, sw, nw);
+}
+
+void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
+{
+  for (int x = 0; x < TILESET_WIDTH; x++)
+  {
+    for (int y = 0; y < TILESET_HEIGHT; y++)
+    {
+      IsoTile* curr_tile = &arr[x][y];
+      printf("%p\n", curr_tile);
+    }
+  }
 }
 
 int main(int argc, char* argv[])
@@ -67,6 +102,7 @@ int main(int argc, char* argv[])
   static Point start_point = {100, 100};
   static Point end_point = {200, 200};
   static Color green = {0x00, 0xFF, 0x00, 0xFF};
+  static IsoTile iso_tiles[TILESET_HEIGHT][TILESET_WIDTH];
 
   // Events
   SDL_Event main_event;
@@ -75,6 +111,32 @@ int main(int argc, char* argv[])
   // Engine variables
   const uint32_t frame_rate = 60;
   const uint32_t frame_time = 1000 / frame_rate;
+
+  // Engine stuff initialization
+  // Initialize iso_tiles with zeros
+  for (int x = 0; x < TILESET_HEIGHT; x++)
+  {
+    for (int y = 0; y < TILESET_WIDTH; y++)
+      {
+        IsoTile* curr_tile = &iso_tiles[x][y];
+        printf("x: %d, y: %d\n", x, y);
+        printf("%p\n", curr_tile);
+
+        curr_tile->nw.x = 0;
+        curr_tile->nw.y = 0;
+
+        curr_tile->ne.x = 0;
+        curr_tile->ne.y = 0;
+
+        curr_tile->se.x = 0;
+        curr_tile->se.y = 0;
+
+        curr_tile->sw.x = 0;
+        curr_tile->sw.y = 0;
+      }
+  }
+  printf("===============================\n");
+  PopulateIsoTileGrid(iso_tiles);
 
   while (!quit_engine)
   {
@@ -110,7 +172,7 @@ int main(int argc, char* argv[])
     SDL_SetRenderDrawColor(main_renderer, 0, 0, 0, 255);
     SDL_RenderClear(main_renderer);
     
-    // Render something
+    // Render stuff
     RenderLine(main_renderer, green, start_point, end_point);
 
     // Update screen
@@ -125,7 +187,7 @@ int main(int argc, char* argv[])
     uint32_t remaining_time = frame_time - (end_time - start_time);
 
     // If there is time - delay
-    // TODO ragnar @improvement
+    // TODO ragnar @improvement - some Spectre shit
     if (remaining_time > 0)
     {
       SDL_Delay(remaining_time);
