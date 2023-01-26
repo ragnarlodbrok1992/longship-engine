@@ -27,11 +27,19 @@ typedef struct
   uint8_t A;
 } Color;
 
+Color BLACK = {0, 0, 0, 255};
+
 typedef struct
 {
   int x;
   int y;
 } Point;
+
+typedef struct
+{
+  Point start;
+  Point end;
+} Line;
 
 typedef struct
 {
@@ -49,29 +57,33 @@ typedef struct
   Point sw;
 } IsoTile;
 
-void RenderLine(SDL_Renderer* renderer, Color color, Point start, Point end)
+void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
 {
   SDL_SetRenderDrawColor(renderer, color.R, color.G, color.B, color.A);
-  SDL_RenderDrawLine(renderer, start.x, start.y, end.x, end.y);
+  SDL_RenderDrawLine(renderer,
+    start.x + camera.center.x, start.y + camera.center.y,
+    end.x + camera.center.x, end.y + camera.center.y);
 }
 
-void RenderIsoTile(SDL_Renderer* renderer, Color& color, IsoTile* iso_tile)
+void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile* iso_tile)
 {
 
-  RenderLine(renderer, color, iso_tile->nw, iso_tile->ne);
-  RenderLine(renderer, color, iso_tile->ne, iso_tile->se);
-  RenderLine(renderer, color, iso_tile->se, iso_tile->sw);
-  RenderLine(renderer, color, iso_tile->sw, iso_tile->nw);
+  RenderLine(renderer, camera, color, iso_tile->nw, iso_tile->ne);
+  RenderLine(renderer, camera, color, iso_tile->ne, iso_tile->se);
+  RenderLine(renderer, camera, color, iso_tile->se, iso_tile->sw);
+  RenderLine(renderer, camera, color, iso_tile->sw, iso_tile->nw);
 }
 
-void RenderIsoTileGrid(SDL_Renderer* renderer, Color& color, IsoTile arr[][TILESET_WIDTH])
+void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile arr[][TILESET_WIDTH])
 {
   for (int x = 0; x < TILESET_WIDTH; x++)
   {
     for (int y = 0; y < TILESET_HEIGHT; y++)
     {
+      // TODO moliwa @improvement: check if this iso tile should be rendered
+      // TODO moliwa: add rendered tiles counter
       IsoTile* curr_tile = &arr[x][y];
-      RenderIsoTile(renderer, color, curr_tile);
+      RenderIsoTile(renderer, camera, color, curr_tile);
     }
   }
 }
@@ -233,24 +245,25 @@ int main(int argc, char* argv[])
     // Event loop ends
 
     // Setting viewport and other stuff
-    SDL_Rect viewport;
-    viewport.x = main_camera.center.x;
-    viewport.y = main_camera.center.y;
+    // SDL_Rect viewport;
+    // viewport.x = main_camera.center.x;
+    // viewport.y = main_camera.center.y;
 
     // TEST
-    viewport.w = RESOLUTION_WIDTH;
-    viewport.h = RESOLUTION_HEIGHT;
+    // viewport.w = RESOLUTION_WIDTH;
+    // viewport.h = RESOLUTION_HEIGHT;
 
-    SDL_RenderSetViewport(main_renderer, &viewport);
+    // SDL_RenderSetViewport(main_renderer, &viewport);
     // TODO moliwa: viewport automatically selects what is going to be rendered based on top-left
     // of isotile grid @fix
+    // Using viewport here is not really the solution
 
     // Clear the screen
-    SDL_SetRenderDrawColor(main_renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(main_renderer, BLACK.R, BLACK.G, BLACK.B, BLACK.A);
     SDL_RenderClear(main_renderer);
     
     // Render stuff
-    RenderIsoTileGrid(main_renderer, green, iso_tiles);
+    RenderIsoTileGrid(main_renderer, main_camera, green, iso_tiles);
 
     // Update screen
     SDL_RenderPresent(main_renderer);
