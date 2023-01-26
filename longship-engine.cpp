@@ -9,12 +9,15 @@
 #include <stdio.h>
 #include <cstdint>
 
+#define RESOLUTION_WIDTH 800
+#define RESOLUTION_HEIGHT 600
+
 #define TILE_HEIGHT 40
 #define TILE_WIDTH 40
 #define TILESET_HEIGHT 10
 #define TILESET_WIDTH 10
-#define TILESET_X 100
-#define TILESET_Y 100
+#define TILESET_X 0
+#define TILESET_Y 0
 
 typedef struct
 {
@@ -32,6 +35,12 @@ typedef struct
 
 typedef struct
 {
+  Point center;
+  float zoom;
+} Camera;
+
+typedef struct
+{
   int id;
 
   Point nw;
@@ -46,7 +55,6 @@ void RenderLine(SDL_Renderer* renderer, Color color, Point start, Point end)
   SDL_RenderDrawLine(renderer, start.x, start.y, end.x, end.y);
 }
 
-// void RenderIsoTile(SDL_Renderer* renderer, Color& color, Point& nw, Point& ne, Point& se, Point& sw)
 void RenderIsoTile(SDL_Renderer* renderer, Color& color, IsoTile* iso_tile)
 {
 
@@ -114,7 +122,10 @@ int main(int argc, char* argv[])
   }
 
   // Create window
-  main_window = SDL_CreateWindow("Longship Engine", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
+  main_window = SDL_CreateWindow("Longship Engine",
+      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      RESOLUTION_WIDTH, RESOLUTION_HEIGHT,
+      SDL_WINDOW_SHOWN);
   if (main_window == NULL)
   {
     printf("Could not initialize window! SDL_Error: %s\n", SDL_GetError());
@@ -128,10 +139,9 @@ int main(int argc, char* argv[])
   main_renderer = SDL_CreateRenderer(main_window, -1, SDL_RENDERER_ACCELERATED);
 
   // Some objects to check rendering
-  // static Point start_point = {100, 100};
-  // static Point end_point = {200, 200};
   static Color green = {0x00, 0xFF, 0x00, 0xFF};
   static IsoTile iso_tiles[TILESET_HEIGHT][TILESET_WIDTH];
+  static Camera main_camera = { {0, 0}, 1.0};
 
   // Events
   SDL_Event main_event;
@@ -140,6 +150,7 @@ int main(int argc, char* argv[])
   // Engine variables
   const uint32_t frame_rate = 60;
   const uint32_t frame_time = 1000 / frame_rate;
+  static bool mouse_dragging = false;
 
   // Engine stuff initialization
   // Initialize iso_tiles with zeros
@@ -170,6 +181,7 @@ int main(int argc, char* argv[])
     // Measure time at beginning of the frame
     uint32_t start_time = SDL_GetTicks();
 
+    // Event loop
     while (SDL_PollEvent(&main_event))
     {
       switch (main_event.type)
@@ -177,6 +189,31 @@ int main(int argc, char* argv[])
         case SDL_QUIT:
           {
             quit_engine = true;
+            break;
+          }
+        case SDL_MOUSEBUTTONDOWN:
+          {
+            mouse_dragging = true;
+            // printf("Mouse button down!\n");
+            break;
+          }
+        case SDL_MOUSEMOTION:
+          {
+            if (mouse_dragging)
+            {
+              // printf("Mouse moved to (%d, %d)\n", main_event.motion.x, main_event.motion.y);             
+              // printf("Mouse x_rel and y_rel is (%d, %d)\n", main_event.motion.xrel, main_event.motion.yrel);
+              // Modify camera values
+              main_camera.center.x += main_event.motion.xrel;
+              main_camera.center.y += main_event.motion.yrel;
+            }
+            break;
+          }
+        case SDL_MOUSEBUTTONUP:
+          {
+            mouse_dragging = false;
+            // printf("Mouse button up!\n");
+            printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
             break;
           }
         case SDL_KEYDOWN:
@@ -194,6 +231,19 @@ int main(int argc, char* argv[])
       }
     }
     // Event loop ends
+
+    // Setting viewport and other stuff
+    SDL_Rect viewport;
+    viewport.x = main_camera.center.x;
+    viewport.y = main_camera.center.y;
+
+    // TEST
+    viewport.w = RESOLUTION_WIDTH;
+    viewport.h = RESOLUTION_HEIGHT;
+
+    SDL_RenderSetViewport(main_renderer, &viewport);
+    // TODO moliwa: viewport automatically selects what is going to be rendered based on top-left
+    // of isotile grid @fix
 
     // Clear the screen
     SDL_SetRenderDrawColor(main_renderer, 0, 0, 0, 255);
