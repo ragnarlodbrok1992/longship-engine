@@ -112,6 +112,33 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
   }
 }
 
+Point TransformGridToIsoPoint(Point& org)
+{
+  Point ret_point;
+  org.x = org.x / TILE_WIDTH;
+  org.y = org.y / TILE_HEIGHT;
+  ret_point.x = org.x * TILE_WIDTH * 1 + org.y * TILE_HEIGHT * -1;
+  ret_point.y = (int)(org.x * 0.5 * TILE_HEIGHT) + (int)(org.y * 0.5 * TILE_HEIGHT);
+  return ret_point;
+}
+
+void MakeIsoTileGridIsometric(IsoTile arr[][TILESET_WIDTH])
+{
+  for (int x = 0; x < TILESET_WIDTH; x++)
+  {
+    for (int y = 0; y < TILESET_HEIGHT; y++)
+    {
+      IsoTile* curr_tile = &arr[x][y];
+      (void)curr_tile;
+
+      curr_tile->nw = TransformGridToIsoPoint(curr_tile->nw);
+      curr_tile->ne = TransformGridToIsoPoint(curr_tile->ne);
+      curr_tile->se = TransformGridToIsoPoint(curr_tile->se);
+      curr_tile->sw = TransformGridToIsoPoint(curr_tile->sw);
+    }
+  }
+}
+
 int main(int argc, char* argv[])
 {
   // Suppres warning for now - we are not going to use argc/argv for now.
@@ -187,6 +214,7 @@ int main(int argc, char* argv[])
   }
 
   PopulateIsoTileGrid(iso_tiles);
+  MakeIsoTileGridIsometric(iso_tiles);
 
   while (!quit_engine)
   {
