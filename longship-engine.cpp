@@ -122,6 +122,14 @@ Point TransformGridToIsoPoint(Point& org)
   return ret_point;
 }
 
+Point GetClickedPosition(Camera& cam, int& click_x, int& click_y)
+{
+  Point ret_point;
+  ret_point.x = click_x - cam.center.x;
+  ret_point.y = click_y - cam.center.y;
+  return ret_point;
+}
+
 void MakeIsoTileGridIsometric(IsoTile arr[][TILESET_WIDTH])
 {
   for (int x = 0; x < TILESET_WIDTH; x++)
@@ -233,16 +241,19 @@ int main(int argc, char* argv[])
           }
         case SDL_MOUSEBUTTONDOWN:
           {
+            int x, y;
+            Point on_grid;
+
             mouse_dragging = true;
-            // printf("Mouse button down!\n");
+            SDL_GetMouseState(&x, &y);
+            on_grid = GetClickedPosition(main_camera, x, y);
+            printf("Clicked on_grid here: (%d, %d)\n", on_grid.x, on_grid.y);
             break;
           }
         case SDL_MOUSEMOTION:
           {
             if (mouse_dragging)
             {
-              // printf("Mouse moved to (%d, %d)\n", main_event.motion.x, main_event.motion.y);             
-              // printf("Mouse x_rel and y_rel is (%d, %d)\n", main_event.motion.xrel, main_event.motion.yrel);
               // Modify camera values
               main_camera.center.x += main_event.motion.xrel;
               main_camera.center.y += main_event.motion.yrel;
@@ -252,7 +263,6 @@ int main(int argc, char* argv[])
         case SDL_MOUSEBUTTONUP:
           {
             mouse_dragging = false;
-            // printf("Mouse button up!\n");
             printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
             break;
           }
