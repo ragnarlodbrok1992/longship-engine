@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <cstdint>
 
-#define RESOLUTION_WIDTH 800
-#define RESOLUTION_HEIGHT 600
+#define RESOLUTION_WIDTH 1024
+#define RESOLUTION_HEIGHT 768
 
-#define TILE_HEIGHT 40
-#define TILE_WIDTH 40
+#define TILE_HEIGHT 20
+#define TILE_WIDTH 20
 #define TILESET_HEIGHT 10
 #define TILESET_WIDTH 10
 #define TILESET_X 0
@@ -118,7 +118,7 @@ Point TransformGridToIsoPoint(Point& org)
   org.x = org.x / TILE_WIDTH;
   org.y = org.y / TILE_HEIGHT;
   ret_point.x = org.x * TILE_WIDTH * 1 + org.y * TILE_HEIGHT * -1;
-  ret_point.y = (int)(org.x * 0.5 * TILE_HEIGHT) + (int)(org.y * 0.5 * TILE_HEIGHT);
+  ret_point.y = (int)(org.x * 0.5 * TILE_WIDTH) + (int)(org.y * 0.5 * TILE_HEIGHT);
   return ret_point;
 }
 
@@ -128,6 +128,27 @@ Point GetClickedPosition(Camera& cam, int& click_x, int& click_y)
   ret_point.x = click_x - cam.center.x;
   ret_point.y = click_y - cam.center.y;
   return ret_point;
+}
+
+Point GetIsoTileFromClicked(int& clicked_pos_x, int& clicked_pos_y)
+{
+  Point ret_point = {0, 0};
+
+  ret_point.x = (int)((2 * clicked_pos_y + clicked_pos_x) / (2 * TILE_WIDTH));
+  ret_point.y = (int)((2 * clicked_pos_y - clicked_pos_x) / (2 * TILE_HEIGHT));
+
+  return ret_point;
+}
+
+Point GetIsoCoordsFromClicked(int& clicked_pos_x, int& clicked_pos_y)
+{
+  Point ret_point = {0, 0};
+
+  ret_point.x = (int)((2 * clicked_pos_y + clicked_pos_x) / (2));
+  ret_point.y = (int)((2 * clicked_pos_y - clicked_pos_x) / (2));
+
+  return ret_point;
+
 }
 
 void MakeIsoTileGridIsometric(IsoTile arr[][TILESET_WIDTH])
@@ -242,12 +263,18 @@ int main(int argc, char* argv[])
         case SDL_MOUSEBUTTONDOWN:
           {
             int x, y;
-            Point on_grid;
+            Point on_clicked;
+            Point on_iso;
+            Point on_iso_coords;
 
             mouse_dragging = true;
             SDL_GetMouseState(&x, &y);
-            on_grid = GetClickedPosition(main_camera, x, y);
-            printf("Clicked on_grid here: (%d, %d)\n", on_grid.x, on_grid.y);
+            on_clicked = GetClickedPosition(main_camera, x, y);
+            on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
+            on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
+            printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
+            printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
+            printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
             break;
           }
         case SDL_MOUSEMOTION:
