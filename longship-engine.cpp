@@ -14,8 +14,8 @@
 
 #define TILE_HEIGHT 20
 #define TILE_WIDTH 20
-#define TILESET_HEIGHT 10
-#define TILESET_WIDTH 10
+#define TILESET_HEIGHT 1000
+#define TILESET_WIDTH 1000
 #define TILESET_X 0
 #define TILESET_Y 0
 
@@ -51,7 +51,7 @@ typedef struct
 {
   int id;
 
-  Point nw;
+  Point nw; // In isometric it's at the top
   Point ne;
   Point se;
   Point sw;
@@ -76,6 +76,8 @@ void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile
 
 void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile arr[][TILESET_WIDTH])
 {
+  // @note: Keeping render count for now
+  // size_t render_count = 0;
   for (int x = 0; x < TILESET_WIDTH; x++)
   {
     for (int y = 0; y < TILESET_HEIGHT; y++)
@@ -83,9 +85,22 @@ void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, Iso
       // TODO moliwa @improvement: check if this iso tile should be rendered
       // TODO moliwa: add rendered tiles counter
       IsoTile* curr_tile = &arr[x][y];
-      RenderIsoTile(renderer, camera, color, curr_tile);
+      
+      int top_left_x = -camera.center.x;
+      int top_left_y = -camera.center.y;
+      int bottom_right_x = -camera.center.x + RESOLUTION_WIDTH;
+      int bottom_right_y = -camera.center.y + RESOLUTION_HEIGHT;
+
+      if ((curr_tile->nw.x > top_left_x) &&
+          (curr_tile->nw.x < bottom_right_x) &&
+          (curr_tile->nw.y > top_left_y) &&
+          (curr_tile->nw.y < bottom_right_y)) {
+        RenderIsoTile(renderer, camera, color, curr_tile);
+        // render_count++;
+      }
     }
   }
+  // printf("Render count: %zd\n", render_count);
 }
 
 void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
@@ -272,9 +287,9 @@ int main(int argc, char* argv[])
             on_clicked = GetClickedPosition(main_camera, x, y);
             on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
             on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
-            printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
-            printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
-            printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
+            // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
+            // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
+            // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
             break;
           }
         case SDL_MOUSEMOTION:
@@ -290,7 +305,7 @@ int main(int argc, char* argv[])
         case SDL_MOUSEBUTTONUP:
           {
             mouse_dragging = false;
-            printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
+            // printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
             break;
           }
         case SDL_KEYDOWN:
