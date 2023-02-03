@@ -3,3 +3,9 @@
 3. Calculate clicks and make isotiles selectable DONE.
 4. Add mouse dragging DONE.
 
+5. Selected rendering - just checking if tile is in bounds.
+  a) Add groupings of tilesets so rendering selected few from a group of those.
+6. Tiles should be selectable - move render color inside isotile structure and paint it inside
+7. Create some UI elements - text rectangle, on/off button
+8. Render text on screen in SDL - create some example code
+

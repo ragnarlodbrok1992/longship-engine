@@ -28,6 +28,9 @@ typedef struct
 } Color;
 
 Color BLACK = {0, 0, 0, 255};
+Color RED = {255, 0, 0, 255};
+Color GREEN = {0, 255, 0, 255};
+Color BLUE = {0, 0, 255, 255};
 
 typedef struct
 {
@@ -56,6 +59,46 @@ typedef struct
   Point se;
   Point sw;
 } IsoTile;
+
+typedef struct
+{
+  int id;
+
+  Point top_left;
+  int width, height, radius;
+  bool state;
+  const char* label;
+
+  Color off_color;
+  Color on_color;
+
+} Button;
+
+Button CreateButton(int id, const char* label, Point top_left, int width, int height)
+{
+  Button ret_button;
+
+  ret_button.id = id;
+  ret_button.label = label;
+  ret_button.top_left = top_left;
+  ret_button.width = width;
+  ret_button.height = height;
+  
+  ret_button.radius = 10;
+  ret_button.state = false;
+  ret_button.off_color = RED;
+  ret_button.on_color = BLUE;
+
+  return ret_button;
+}
+
+void inline RenderButton(SDL_Renderer* renderer, Button& button)
+{
+  SDL_Rect rect = {button.top_left.x, button.top_left.y, button.width, button.height};
+  // Render off_state for now
+  SDL_SetRenderDrawColor(renderer, button.off_color.R, button.off_color.G, button.off_color.B, button.off_color.A);
+  SDL_RenderFillRect(renderer, &rect);
+}
 
 void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
 {
@@ -257,6 +300,10 @@ int main(int argc, char* argv[])
       }
   }
 
+  // Initialize some debug buttons
+  Button test_button = CreateButton(0, "Test button", {100, 100}, 100, 20);
+
+  // IsoTile initialization
   PopulateIsoTileGrid(iso_tiles);
   MakeIsoTileGridIsometric(iso_tiles);
 
@@ -344,6 +391,9 @@ int main(int argc, char* argv[])
     
     // Render stuff
     RenderIsoTileGrid(main_renderer, main_camera, green, iso_tiles);
+    
+    // Render UI elements
+    RenderButton(main_renderer, test_button);
 
     // Update screen
     SDL_RenderPresent(main_renderer);
