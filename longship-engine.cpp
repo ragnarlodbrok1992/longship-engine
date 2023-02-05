@@ -31,6 +31,8 @@ Color BLACK = {0, 0, 0, 255};
 Color RED = {255, 0, 0, 255};
 Color GREEN = {0, 255, 0, 255};
 Color BLUE = {0, 0, 255, 255};
+Color KHAKI = {240, 230, 140, 255};
+Color DARK_KHAKI = {189, 183, 107, 255};
 
 typedef struct
 {
@@ -58,6 +60,9 @@ typedef struct
   Point ne;
   Point se;
   Point sw;
+
+  Color not_selected_color;
+  Color selected_color;
 } IsoTile;
 
 typedef struct
@@ -100,6 +105,7 @@ void inline RenderButton(SDL_Renderer* renderer, Button& button)
   SDL_RenderFillRect(renderer, &rect);
 }
 
+// @note: This can be moved to a single function SDL_RenderDrawLines
 void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
 {
   SDL_SetRenderDrawColor(renderer, color.R, color.G, color.B, color.A);
@@ -115,6 +121,23 @@ void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile
   RenderLine(renderer, camera, color, iso_tile->ne, iso_tile->se);
   RenderLine(renderer, camera, color, iso_tile->se, iso_tile->sw);
   RenderLine(renderer, camera, color, iso_tile->sw, iso_tile->nw);
+
+  // After rendering line render inside - one pixel off
+  // Render inside polygon
+  // some_vertices - pointer to SDL_Vertex
+  // SDL_Point
+  // @note casting here is implicit
+  SDL_Vertex curr_tile_sdl_vertex[] = {
+    {{iso_tile->nw.x, iso_tile->nw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+    {{iso_tile->ne.x, iso_tile->ne.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+    {{iso_tile->se.x, iso_tile->se.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+    {{iso_tile->sw.x, iso_tile->sw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}}};
+
+  // SDL_SetRenderDrawColor(renderer, iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A); // <-- This might not be needed 
+  // TODO FIXME ragnar: here is a bug :)
+  // @note this needs testing in a different file
+  SDL_RenderGeometry(renderer, NULL, curr_tile_sdl_vertex, 4, NULL, 0);
+  
 }
 
 void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile arr[][TILESET_WIDTH])
@@ -166,6 +189,10 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
 
       curr_tile->sw.x = TILESET_X + (TILE_WIDTH * x);
       curr_tile->sw.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
+
+      // Setting colors - @note move this elsewhere
+      curr_tile->not_selected_color = KHAKI;
+      curr_tile->selected_color = DARK_KHAKI;
     }
   }
 }
@@ -258,6 +285,16 @@ int main(int argc, char* argv[])
     return 2;
   }
 
+  // Get SDL version
+  SDL_version compiled;
+  SDL_version linked;
+
+  SDL_VERSION(&compiled);
+  SDL_GetVersion(&linked);
+
+  printf("Compiled against SDL ver. %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
+  printf("Linked against SDL ver. %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+
   // Initialize surface
   main_surface = SDL_GetWindowSurface(main_window);
 
@@ -277,6 +314,7 @@ int main(int argc, char* argv[])
   const uint32_t frame_rate = 60;
   const uint32_t frame_time = 1000 / frame_rate;
   static bool mouse_dragging = false;
+  static bool mouse_selection = true;
 
   // Engine stuff initialization
   // Initialize iso_tiles with zeros
@@ -324,19 +362,7 @@ int main(int argc, char* argv[])
           }
         case SDL_MOUSEBUTTONDOWN:
           {
-            int x, y;
-            Point on_clicked;
-            Point on_iso;
-            Point on_iso_coords;
-
             mouse_dragging = true;
-            SDL_GetMouseState(&x, &y);
-            on_clicked = GetClickedPosition(main_camera, x, y);
-            on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
-            on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
-            // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
-            // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
-            // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
             break;
           }
         case SDL_MOUSEMOTION:
@@ -346,12 +372,31 @@ int main(int argc, char* argv[])
               // Modify camera values
               main_camera.center.x += main_event.motion.xrel;
               main_camera.center.y += main_event.motion.yrel;
+
+              mouse_selection = false;
             }
             break;
           }
         case SDL_MOUSEBUTTONUP:
           {
+            if (mouse_selection) {
+              mouse_selection = false;
+
+              int x, y;
+              Point on_clicked;
+              Point on_iso;
+              Point on_iso_coords;
+
+              SDL_GetMouseState(&x, &y);
+              on_clicked = GetClickedPosition(main_camera, x, y);
+              on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
+              on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
+              printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
+              printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
+              printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
+            }
             mouse_dragging = false;
+            mouse_selection = true;
             // printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
             break;
           }
