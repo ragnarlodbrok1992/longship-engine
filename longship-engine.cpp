@@ -1,6 +1,5 @@
 #define SDL_MAIN_HANDLED
 
-
 // Pragma workaround so we don't get errors from SDL headers
 #pragma warning(push, 0)
 #include <SDL2/SDL.h>
@@ -460,6 +459,7 @@ int main(int argc, char* argv[])
   }
 
   // Deinitialize stuff
+  SDL_DestroyRenderer(main_renderer);
   SDL_DestroyWindow(main_window);
   SDL_Quit();
 
