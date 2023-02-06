@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+const size_t ISO_TILE_VERTS = 3;
+
 
 typedef struct {
   SDL_Window* window;
@@ -96,6 +98,58 @@ int main(int argc, char* argv[])
   // }
 
   printf("SDL initialized\n");
+
+  // Render geometry variables
+  SDL_Vertex iso_tile_top[ISO_TILE_VERTS];
+  SDL_Vertex iso_tile_bottom[ISO_TILE_VERTS];
+
+  // 1
+  iso_tile_top[0].position.x = 200;
+  iso_tile_top[0].position.y = 100;
+  iso_tile_top[0].color.r = 189;
+  iso_tile_top[0].color.g = 183;
+  iso_tile_top[0].color.b = 107;
+  iso_tile_top[0].color.a = 255;
+
+  // 2 
+  iso_tile_top[1].position.x = 300;
+  iso_tile_top[1].position.y = 200;
+  iso_tile_top[1].color.r = 189;
+  iso_tile_top[1].color.g = 183;
+  iso_tile_top[1].color.b = 107;
+  iso_tile_top[1].color.a = 255;
+
+  // 3 
+  iso_tile_top[2].position.x = 100;
+  iso_tile_top[2].position.y = 200;
+  iso_tile_top[2].color.r = 189;
+  iso_tile_top[2].color.g = 183;
+  iso_tile_top[2].color.b = 107;
+  iso_tile_top[2].color.a = 255;
+
+  // 1
+  iso_tile_bottom[0].position.x = 300;
+  iso_tile_bottom[0].position.y = 200;
+  iso_tile_bottom[0].color.r = 189;
+  iso_tile_bottom[0].color.g = 183;
+  iso_tile_bottom[0].color.b = 107;
+  iso_tile_bottom[0].color.a = 255;
+
+  // 2
+  iso_tile_bottom[1].position.x = 100;
+  iso_tile_bottom[1].position.y = 200;
+  iso_tile_bottom[1].color.r = 189;
+  iso_tile_bottom[1].color.g = 183;
+  iso_tile_bottom[1].color.b = 107;
+  iso_tile_bottom[1].color.a = 255;
+
+  // 3
+  iso_tile_bottom[2].position.x = 200;
+  iso_tile_bottom[2].position.y = 300;
+  iso_tile_bottom[2].color.r = 189;
+  iso_tile_bottom[2].color.g = 183;
+  iso_tile_bottom[2].color.b = 107;
+  iso_tile_bottom[2].color.a = 255;
   
   while (!quit)
   {
@@ -125,6 +179,10 @@ int main(int argc, char* argv[])
     // Test render
     SDL_SetRenderDrawColor(main_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
     SDL_RenderDrawLine(main_renderer, 100, 100, 200, 200);
+
+    // Render geometry here
+    SDL_RenderGeometry(main_renderer, NULL, iso_tile_top, 3, NULL, 0);
+    SDL_RenderGeometry(main_renderer, NULL, iso_tile_bottom, 3, NULL, 0);
 
     // Update screen
     SDL_RenderPresent(main_renderer);
