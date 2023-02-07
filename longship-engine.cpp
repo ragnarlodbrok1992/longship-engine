@@ -41,13 +41,19 @@ typedef struct
 
 typedef struct
 {
+  float x;
+  float y;
+} PointF;
+
+typedef struct
+{
   Point start;
   Point end;
 } Line;
 
 typedef struct
 {
-  Point center;
+  PointF center;
   float zoom;
 } Camera;
 
@@ -117,8 +123,8 @@ void inline RenderLine(SDL_Renderer* renderer, Camera& camera, SDL_Vertex& start
   // @note GREEN for now
   SDL_SetRenderDrawColor(renderer, GREEN.R, GREEN.G, GREEN.B, GREEN.A);
   SDL_RenderDrawLine(renderer,
-    start.position.x + camera.center.x, start.position.y + camera.center.y,
-    end.position.x + camera.center.x, end.position.y + camera.center.y);
+    (int)(start.position.x + camera.center.x), (int)(start.position.y + camera.center.y),
+    (int)(end.position.x + camera.center.x), (int)(end.position.y + camera.center.y));
 }
 
 void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
@@ -148,7 +154,7 @@ void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
   
 }
 
-void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile arr[][TILESET_WIDTH])
+void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, IsoTile arr[][TILESET_WIDTH])
 {
   // @note: Keeping render count for now
   // size_t render_count = 0;
@@ -158,17 +164,18 @@ void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, Iso
     {
       // TODO moliwa @improvement: check if this iso tile should be rendered
       // TODO moliwa: add rendered tiles counter
+      // @note: make better function that checks if IsoTile should be rendered
       IsoTile* curr_tile = &arr[x][y];
       
-      int top_left_x = -camera.center.x;
-      int top_left_y = -camera.center.y;
-      int bottom_right_x = -camera.center.x + RESOLUTION_WIDTH;
-      int bottom_right_y = -camera.center.y + RESOLUTION_HEIGHT;
+      int top_left_x = (int)(-camera.center.x);
+      int top_left_y = (int)(-camera.center.y);
+      int bottom_right_x = (int)(-camera.center.x) + RESOLUTION_WIDTH;
+      int bottom_right_y = (int)(-camera.center.y) + RESOLUTION_HEIGHT;
 
-      if ((curr_tile->nw.position.x > top_left_x) &&
-          (curr_tile->nw.position.x < bottom_right_x) &&
-          (curr_tile->nw.position.y > top_left_y) &&
-          (curr_tile->nw.position.y < bottom_right_y)) {
+      if (((int)(curr_tile->nw.position.x) > top_left_x) &&
+          ((int)(curr_tile->nw.position.x) < bottom_right_x) &&
+          ((int)(curr_tile->nw.position.y) > top_left_y) &&
+          ((int)(curr_tile->nw.position.y) < bottom_right_y)) {
         RenderIsoTile(renderer, camera, curr_tile);
         // render_count++;
       }
@@ -186,17 +193,17 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
     {
       IsoTile* curr_tile = &arr[x][y];
 
-      curr_tile->nw.position.x = TILESET_X + (TILE_WIDTH * x);
-      curr_tile->nw.position.y = TILESET_Y + (TILE_HEIGHT * y);
+      curr_tile->nw.position.x = (float)(TILESET_X + (TILE_WIDTH * x));
+      curr_tile->nw.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
 
-      curr_tile->ne.position.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
-      curr_tile->ne.position.y = TILESET_Y + (TILE_HEIGHT * y);
+      curr_tile->ne.position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
+      curr_tile->ne.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
 
-      curr_tile->se.position.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
-      curr_tile->se.position.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
+      curr_tile->se.position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
+      curr_tile->se.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
 
-      curr_tile->sw.position.x = TILESET_X + (TILE_WIDTH * x);
-      curr_tile->sw.position.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
+      curr_tile->sw.position.x = (float)(TILESET_X + (TILE_WIDTH * x));
+      curr_tile->sw.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
 
       // Setting colors - @note move this elsewhere
       // curr_tile->not_selected_color = KHAKI;
@@ -310,7 +317,6 @@ int main(int argc, char* argv[])
   main_renderer = SDL_CreateRenderer(main_window, -1, SDL_RENDERER_ACCELERATED);
 
   // Some objects to check rendering
-  static Color green = {0x00, 0xFF, 0x00, 0xFF};
   static IsoTile iso_tiles[TILESET_HEIGHT][TILESET_WIDTH];
   static Camera main_camera = { {0, 0}, 1.0};
 
@@ -444,7 +450,7 @@ int main(int argc, char* argv[])
     SDL_RenderClear(main_renderer);
     
     // Render stuff
-    RenderIsoTileGrid(main_renderer, main_camera, green, iso_tiles);
+    RenderIsoTileGrid(main_renderer, main_camera, iso_tiles);
     
     // Render UI elements
     RenderButton(main_renderer, test_button);
