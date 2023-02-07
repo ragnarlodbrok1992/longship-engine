@@ -55,13 +55,19 @@ typedef struct
 {
   int id;
 
-  Point nw; // In isometric it's at the top
-  Point ne;
-  Point se;
-  Point sw;
+  // Point nw; // In isometric it's at the top
+  // Point ne;
+  // Point se;
+  // Point sw;
+  // Color not_selected_color;
+  // Color selected_color;
+  SDL_Vertex  nw;
+  SDL_Vertex  ne;
+  SDL_Vertex  se;
+  SDL_Vertex  sw;
 
-  Color not_selected_color;
-  Color selected_color;
+  // New version - SDL_Vertxes - now with color attached!
+
 } IsoTile;
 
 typedef struct
@@ -105,37 +111,40 @@ void inline RenderButton(SDL_Renderer* renderer, Button& button)
 }
 
 // @note: This can be moved to a single function SDL_RenderDrawLines
-void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
+// void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
+void inline RenderLine(SDL_Renderer* renderer, Camera& camera, SDL_Vertex& start, SDL_Vertex& end)
 {
-  SDL_SetRenderDrawColor(renderer, color.R, color.G, color.B, color.A);
+  // @note GREEN for now
+  SDL_SetRenderDrawColor(renderer, GREEN.R, GREEN.G, GREEN.B, GREEN.A);
   SDL_RenderDrawLine(renderer,
-    start.x + camera.center.x, start.y + camera.center.y,
-    end.x + camera.center.x, end.y + camera.center.y);
+    start.position.x + camera.center.x, start.position.y + camera.center.y,
+    end.position.x + camera.center.x, end.position.y + camera.center.y);
 }
 
-void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, Color& color, IsoTile* iso_tile)
+void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
 {
 
-  RenderLine(renderer, camera, color, iso_tile->nw, iso_tile->ne);
-  RenderLine(renderer, camera, color, iso_tile->ne, iso_tile->se);
-  RenderLine(renderer, camera, color, iso_tile->se, iso_tile->sw);
-  RenderLine(renderer, camera, color, iso_tile->sw, iso_tile->nw);
+  RenderLine(renderer, camera, iso_tile->nw, iso_tile->ne);
+  RenderLine(renderer, camera, iso_tile->ne, iso_tile->se);
+  RenderLine(renderer, camera, iso_tile->se, iso_tile->sw);
+  RenderLine(renderer, camera, iso_tile->sw, iso_tile->nw);
+
 
   // After rendering line render inside - one pixel off
   // Render inside polygon
   // some_vertices - pointer to SDL_Vertex
   // SDL_Point
   // @note casting here is implicit
-  SDL_Vertex curr_tile_sdl_vertex[] = {
-    {{iso_tile->nw.x, iso_tile->nw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-    {{iso_tile->ne.x, iso_tile->ne.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-    {{iso_tile->se.x, iso_tile->se.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-    {{iso_tile->sw.x, iso_tile->sw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}}};
+  //SDL_Vertex curr_tile_sdl_vertex[] = {
+  //  {{iso_tile->nw.x, iso_tile->nw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+  //  {{iso_tile->ne.x, iso_tile->ne.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+  //  {{iso_tile->se.x, iso_tile->se.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
+  //  {{iso_tile->sw.x, iso_tile->sw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}}};
 
   // SDL_SetRenderDrawColor(renderer, iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A); // <-- This might not be needed 
   // TODO FIXME ragnar: here is a bug :)
   // @note this needs testing in a different file
-  SDL_RenderGeometry(renderer, NULL, curr_tile_sdl_vertex, 4, NULL, 0);
+  // SDL_RenderGeometry(renderer, NULL, curr_tile_sdl_vertex, 4, NULL, 0);
   
 }
 
@@ -156,11 +165,11 @@ void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, Color& color, Iso
       int bottom_right_x = -camera.center.x + RESOLUTION_WIDTH;
       int bottom_right_y = -camera.center.y + RESOLUTION_HEIGHT;
 
-      if ((curr_tile->nw.x > top_left_x) &&
-          (curr_tile->nw.x < bottom_right_x) &&
-          (curr_tile->nw.y > top_left_y) &&
-          (curr_tile->nw.y < bottom_right_y)) {
-        RenderIsoTile(renderer, camera, color, curr_tile);
+      if ((curr_tile->nw.position.x > top_left_x) &&
+          (curr_tile->nw.position.x < bottom_right_x) &&
+          (curr_tile->nw.position.y > top_left_y) &&
+          (curr_tile->nw.position.y < bottom_right_y)) {
+        RenderIsoTile(renderer, camera, curr_tile);
         // render_count++;
       }
     }
@@ -177,33 +186,33 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
     {
       IsoTile* curr_tile = &arr[x][y];
 
-      curr_tile->nw.x = TILESET_X + (TILE_WIDTH * x);
-      curr_tile->nw.y = TILESET_Y + (TILE_HEIGHT * y);
+      curr_tile->nw.position.x = TILESET_X + (TILE_WIDTH * x);
+      curr_tile->nw.position.y = TILESET_Y + (TILE_HEIGHT * y);
 
-      curr_tile->ne.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
-      curr_tile->ne.y = TILESET_Y + (TILE_HEIGHT * y);
+      curr_tile->ne.position.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
+      curr_tile->ne.position.y = TILESET_Y + (TILE_HEIGHT * y);
 
-      curr_tile->se.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
-      curr_tile->se.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
+      curr_tile->se.position.x = TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH;
+      curr_tile->se.position.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
 
-      curr_tile->sw.x = TILESET_X + (TILE_WIDTH * x);
-      curr_tile->sw.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
+      curr_tile->sw.position.x = TILESET_X + (TILE_WIDTH * x);
+      curr_tile->sw.position.y = TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT;
 
       // Setting colors - @note move this elsewhere
-      curr_tile->not_selected_color = KHAKI;
-      curr_tile->selected_color = DARK_KHAKI;
+      // curr_tile->not_selected_color = KHAKI;
+      // curr_tile->selected_color = DARK_KHAKI;
     }
   }
 }
 
-Point TransformGridToIsoPoint(Point& org)
+SDL_Vertex TransformGridToIsoPoint(SDL_Vertex& org)
 {
-  Point ret_point;
-  org.x = org.x / TILE_WIDTH;
-  org.y = org.y / TILE_HEIGHT;
-  ret_point.x = org.x * TILE_WIDTH * 1 + org.y * TILE_HEIGHT * -1;
-  ret_point.y = (int)(org.x * 0.5 * TILE_WIDTH) + (int)(org.y * 0.5 * TILE_HEIGHT);
-  return ret_point;
+  SDL_Vertex ret_vertex;
+  org.position.x = org.position.x / TILE_WIDTH;
+  org.position.y = org.position.y / TILE_HEIGHT;
+  ret_vertex.position.x = org.position.x * TILE_WIDTH * 1 + org.position.y * TILE_HEIGHT * -1;
+  ret_vertex.position.y = (int)(org.position.x * 0.5 * TILE_WIDTH) + (int)(org.position.y * 0.5 * TILE_HEIGHT);
+  return ret_vertex;
 }
 
 Point GetClickedPosition(Camera& cam, int& click_x, int& click_y)
@@ -317,23 +326,24 @@ int main(int argc, char* argv[])
 
   // Engine stuff initialization
   // Initialize iso_tiles with zeros
+  // @note: Maybe we don't have to do this?
   for (int x = 0; x < TILESET_HEIGHT; x++)
   {
     for (int y = 0; y < TILESET_WIDTH; y++)
       {
         IsoTile* curr_tile = &iso_tiles[x][y];
 
-        curr_tile->nw.x = 0;
-        curr_tile->nw.y = 0;
+        curr_tile->nw.position.x = 0;
+        curr_tile->nw.position.y = 0;
 
-        curr_tile->ne.x = 0;
-        curr_tile->ne.y = 0;
+        curr_tile->ne.position.x = 0;
+        curr_tile->ne.position.y = 0;
 
-        curr_tile->se.x = 0;
-        curr_tile->se.y = 0;
+        curr_tile->se.position.x = 0;
+        curr_tile->se.position.y = 0;
 
-        curr_tile->sw.x = 0;
-        curr_tile->sw.y = 0;
+        curr_tile->sw.position.x = 0;
+        curr_tile->sw.position.y = 0;
       }
   }
 
