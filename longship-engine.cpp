@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <cstdint>
+#include <cassert>
 
 #define RESOLUTION_WIDTH 1024
 #define RESOLUTION_HEIGHT 768
@@ -64,19 +65,14 @@ typedef struct
 {
   int id;
 
-  // Point nw; // In isometric it's at the top
-  // Point ne;
-  // Point se;
-  // Point sw;
-  // Color not_selected_color;
-  // Color selected_color;
-  SDL_Vertex  nw;
-  SDL_Vertex  ne;
-  SDL_Vertex  se;
-  SDL_Vertex  sw;
+  // @note: We store stuff twice here
+  // SDL_Vertex  nw;
+  // SDL_Vertex  ne;
+  // SDL_Vertex  se;
+  // SDL_Vertex  sw;
 
-  // New version - SDL_Vertxes - now with color attached!
-  // @note: we create SDL_Vertex array with all of them stored together
+  // 0 - nw, 1 - ne, 2 - sw, 3 - se
+  // TODO remove nw, ne, se, sw vertices
   SDL_Vertex vertices[4];
 
 } IsoTile;
@@ -94,6 +90,16 @@ typedef struct
   Color on_color;
 
 } Button;
+
+typedef enum
+{
+  CHANGE_COLOR
+} EventType;
+
+typedef struct
+{
+  EventType type;
+} Event;
 
 Button CreateButton(int id, const char* label, Point top_left, int width, int height)
 {
@@ -122,7 +128,6 @@ void inline RenderButton(SDL_Renderer* renderer, Button& button)
 }
 
 // @note: This can be moved to a single function SDL_RenderDrawLines
-// void inline RenderLine(SDL_Renderer* renderer, Camera& camera, Color color, Point start, Point end)
 void inline RenderLine(SDL_Renderer* renderer, Camera& camera, SDL_Vertex& start, SDL_Vertex& end)
 {
   // @note GREEN for now
@@ -136,9 +141,6 @@ void inline RenderInsideIsoTile(SDL_Renderer* renderer, Camera& camera, SDL_Vert
 {
   SDL_Vertex top_vertices[3];
   SDL_Vertex bottom_vertices[3];
-
-  // DEBUG
-  // printf("R %d, G %d, B %d, A: %d\n", vertices[0].color.r, vertices[0].color.g, vertices[0].color.b, vertices[0].color.a); 
 
   for (int x = 0; x < 3; x++)
   {
@@ -163,16 +165,14 @@ void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
 {
   RenderInsideIsoTile(renderer, camera, iso_tile->vertices);
 
-  RenderLine(renderer, camera, iso_tile->nw, iso_tile->ne);
-  RenderLine(renderer, camera, iso_tile->ne, iso_tile->se);
-  RenderLine(renderer, camera, iso_tile->se, iso_tile->sw);
-  RenderLine(renderer, camera, iso_tile->sw, iso_tile->nw);
+  RenderLine(renderer, camera, iso_tile->vertices[0], iso_tile->vertices[1]);
+  RenderLine(renderer, camera, iso_tile->vertices[1], iso_tile->vertices[3]);
+  RenderLine(renderer, camera, iso_tile->vertices[3], iso_tile->vertices[2]);
+  RenderLine(renderer, camera, iso_tile->vertices[2], iso_tile->vertices[0]);
 }
 
 void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, IsoTile arr[][TILESET_WIDTH])
 {
-  // @note: Keeping render count for now
-  // size_t render_count = 0;
   for (int x = 0; x < TILESET_WIDTH; x++)
   {
     for (int y = 0; y < TILESET_HEIGHT; y++)
@@ -187,16 +187,14 @@ void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, IsoTile arr[][TIL
       int bottom_right_x = (int)(-camera.center.x) + RESOLUTION_WIDTH;
       int bottom_right_y = (int)(-camera.center.y) + RESOLUTION_HEIGHT;
 
-      if (((int)(curr_tile->nw.position.x) > top_left_x) &&
-          ((int)(curr_tile->nw.position.x) < bottom_right_x) &&
-          ((int)(curr_tile->nw.position.y) > top_left_y) &&
-          ((int)(curr_tile->nw.position.y) < bottom_right_y)) {
+      if (((int)(curr_tile->vertices[0].position.x) > top_left_x) &&
+          ((int)(curr_tile->vertices[0].position.x) < bottom_right_x) &&
+          ((int)(curr_tile->vertices[0].position.y) > top_left_y) &&
+          ((int)(curr_tile->vertices[0].position.y) < bottom_right_y)) {
         RenderIsoTile(renderer, camera, curr_tile);
-        // render_count++;
       }
     }
   }
-  // printf("Render count: %zd\n", render_count);
 }
 
 void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
@@ -208,46 +206,34 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
     {
       IsoTile* curr_tile = &arr[x][y];
 
-      curr_tile->nw.position.x = (float)(TILESET_X + (TILE_WIDTH * x));
-      curr_tile->nw.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
+      curr_tile->vertices[0].position.x = (float)(TILESET_X + (TILE_WIDTH * x));
+      curr_tile->vertices[0].position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
+      curr_tile->vertices[1].position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
+      curr_tile->vertices[1].position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
+      curr_tile->vertices[3].position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
+      curr_tile->vertices[3].position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
+      curr_tile->vertices[2].position.x = (float)(TILESET_X + (TILE_WIDTH * x));
+      curr_tile->vertices[2].position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
 
-      curr_tile->ne.position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
-      curr_tile->ne.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y));
+      curr_tile->vertices[0].color.r = DARK_KHAKI.R;
+      curr_tile->vertices[0].color.g = DARK_KHAKI.G;
+      curr_tile->vertices[0].color.b = DARK_KHAKI.B;
+      curr_tile->vertices[0].color.a = DARK_KHAKI.A;
 
-      curr_tile->se.position.x = (float)(TILESET_X + (TILE_WIDTH * x) + TILE_WIDTH);
-      curr_tile->se.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
+      curr_tile->vertices[1].color.r = DARK_KHAKI.R;
+      curr_tile->vertices[1].color.g = DARK_KHAKI.G;
+      curr_tile->vertices[1].color.b = DARK_KHAKI.B;
+      curr_tile->vertices[1].color.a = DARK_KHAKI.A;
 
-      curr_tile->sw.position.x = (float)(TILESET_X + (TILE_WIDTH * x));
-      curr_tile->sw.position.y = (float)(TILESET_Y + (TILE_HEIGHT * y) + TILE_HEIGHT);
+      curr_tile->vertices[3].color.r = DARK_KHAKI.R;
+      curr_tile->vertices[3].color.g = DARK_KHAKI.G;
+      curr_tile->vertices[3].color.b = DARK_KHAKI.B;
+      curr_tile->vertices[3].color.a = DARK_KHAKI.A;
 
-      // Setting colors - @note move this elsewhere
-      // curr_tile->not_selected_color = KHAKI;
-      // curr_tile->selected_color = DARK_KHAKI;
-
-      // printf("KHAKI.R %d, G %d, B %d, A %d\n", KHAKI.R, KHAKI.G, KHAKI.B, KHAKI.A);
-
-      curr_tile->nw.color.r = DARK_KHAKI.R;
-      curr_tile->nw.color.g = DARK_KHAKI.G;
-      curr_tile->nw.color.b = DARK_KHAKI.B;
-      curr_tile->nw.color.a = DARK_KHAKI.A;
-
-      curr_tile->ne.color.r = DARK_KHAKI.R;
-      curr_tile->ne.color.g = DARK_KHAKI.G;
-      curr_tile->ne.color.b = DARK_KHAKI.B;
-      curr_tile->ne.color.a = DARK_KHAKI.A;
-
-      curr_tile->se.color.r = DARK_KHAKI.R;
-      curr_tile->se.color.g = DARK_KHAKI.G;
-      curr_tile->se.color.b = DARK_KHAKI.B;
-      curr_tile->se.color.a = DARK_KHAKI.A;
-
-      curr_tile->sw.color.r = DARK_KHAKI.R;
-      curr_tile->sw.color.g = DARK_KHAKI.G;
-      curr_tile->sw.color.b = DARK_KHAKI.B;
-      curr_tile->sw.color.a = DARK_KHAKI.A;
-
-      // printf("NW color: nw.color.r %d, nw.color.g %d, nw.color.b %d, nw.color.a %d\n",
-      //     curr_tile->nw.color.r, curr_tile->nw.color.g, curr_tile->nw.color.b, curr_tile->nw.color.a);
+      curr_tile->vertices[2].color.r = DARK_KHAKI.R;
+      curr_tile->vertices[2].color.g = DARK_KHAKI.G;
+      curr_tile->vertices[2].color.b = DARK_KHAKI.B;
+      curr_tile->vertices[2].color.a = DARK_KHAKI.A;
     }
   }
 }
@@ -308,17 +294,46 @@ void MakeIsoTileGridIsometric(IsoTile arr[][TILESET_WIDTH])
       IsoTile* curr_tile = &arr[x][y];
       (void)curr_tile;
 
-      curr_tile->nw = TransformGridToIsoPoint(curr_tile->nw);
-      curr_tile->ne = TransformGridToIsoPoint(curr_tile->ne);
-      curr_tile->se = TransformGridToIsoPoint(curr_tile->se);
-      curr_tile->sw = TransformGridToIsoPoint(curr_tile->sw);
-
       // Fill vertices array
-      curr_tile->vertices[0] = curr_tile->nw;
-      curr_tile->vertices[1] = curr_tile->ne;
-      curr_tile->vertices[2] = curr_tile->sw;
-      curr_tile->vertices[3] = curr_tile->se;
+      curr_tile->vertices[0] = TransformGridToIsoPoint(curr_tile->vertices[0]);
+      curr_tile->vertices[1] = TransformGridToIsoPoint(curr_tile->vertices[1]);
+      curr_tile->vertices[2] = TransformGridToIsoPoint(curr_tile->vertices[2]);
+      curr_tile->vertices[3] = TransformGridToIsoPoint(curr_tile->vertices[3]);
     }
+  }
+}
+
+void ChangeIsoTileColor(IsoTile* iso_tile, Color color)
+{
+  for (int x = 0; x < 4; x++)
+  {
+    iso_tile->vertices[x].color.r = color.R;
+    iso_tile->vertices[x].color.g = color.G;
+    iso_tile->vertices[x].color.b = color.B;
+    iso_tile->vertices[x].color.a = color.A;
+  }
+}
+
+void IsoTileClicked(IsoTile iso_tile_grid[][TILESET_WIDTH], Event* e, int x, int y)
+{
+  if (x < 0 || x > TILESET_WIDTH) return;
+  if (y < 0 || y > TILESET_HEIGHT) return;
+
+  IsoTile* curr_tile = &iso_tile_grid[x][y];
+
+  switch (e->type)
+  {
+    case CHANGE_COLOR:
+      {
+        printf("Changing color in IsoTile (%d,%d) -> (%p)\n", x, y, curr_tile);
+        ChangeIsoTileColor(curr_tile, KHAKI);
+        break;
+      }
+    default:
+      {
+        assert(false && "UNREACHABLE: Wrong event type");
+        break;
+      }
   }
 }
 
@@ -392,18 +407,11 @@ int main(int argc, char* argv[])
     for (int y = 0; y < TILESET_WIDTH; y++)
       {
         IsoTile* curr_tile = &iso_tiles[x][y];
-
-        curr_tile->nw.position.x = 0;
-        curr_tile->nw.position.y = 0;
-
-        curr_tile->ne.position.x = 0;
-        curr_tile->ne.position.y = 0;
-
-        curr_tile->se.position.x = 0;
-        curr_tile->se.position.y = 0;
-
-        curr_tile->sw.position.x = 0;
-        curr_tile->sw.position.y = 0;
+        for (int z = 0; z < 4; z++)
+        {
+          curr_tile->vertices[z].position.x = 0;
+          curr_tile->vertices[z].position.y = 0;
+        }
       }
   }
 
@@ -463,6 +471,13 @@ int main(int argc, char* argv[])
               // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
               // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
               // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
+
+              // Clicking iso tile
+              printf("Creating event\n");
+              Event e;
+              e.type = EventType::CHANGE_COLOR;
+              printf("Passing x: %d, y: %d \n", on_iso.x, on_iso.y);
+              IsoTileClicked(iso_tiles, &e, on_iso.x, on_iso.y);
             }
             mouse_dragging = false;
             mouse_selection = true;
@@ -484,20 +499,6 @@ int main(int argc, char* argv[])
       }
     }
     // Event loop ends
-
-    // Setting viewport and other stuff
-    // SDL_Rect viewport;
-    // viewport.x = main_camera.center.x;
-    // viewport.y = main_camera.center.y;
-
-    // TEST
-    // viewport.w = RESOLUTION_WIDTH;
-    // viewport.h = RESOLUTION_HEIGHT;
-
-    // SDL_RenderSetViewport(main_renderer, &viewport);
-    // TODO moliwa: viewport automatically selects what is going to be rendered based on top-left
-    // of isotile grid @fix
-    // Using viewport here is not really the solution
 
     // Clear the screen
     SDL_SetRenderDrawColor(main_renderer, BLACK.R, BLACK.G, BLACK.B, BLACK.A);
