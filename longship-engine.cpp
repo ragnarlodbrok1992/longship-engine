@@ -137,6 +137,9 @@ void inline RenderInsideIsoTile(SDL_Renderer* renderer, Camera& camera, SDL_Vert
   SDL_Vertex top_vertices[3];
   SDL_Vertex bottom_vertices[3];
 
+  // DEBUG
+  // printf("R %d, G %d, B %d, A: %d\n", vertices[0].color.r, vertices[0].color.g, vertices[0].color.b, vertices[0].color.a); 
+
   for (int x = 0; x < 3; x++)
   {
     top_vertices[x] = {{vertices[x].position.x + camera.center.x,
@@ -220,36 +223,50 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
       // Setting colors - @note move this elsewhere
       // curr_tile->not_selected_color = KHAKI;
       // curr_tile->selected_color = DARK_KHAKI;
-      curr_tile->nw.color.r = KHAKI.R;
-      curr_tile->nw.color.g = KHAKI.G;
-      curr_tile->nw.color.b = KHAKI.B;
-      curr_tile->nw.color.a = KHAKI.A;
 
-      curr_tile->ne.color.r = KHAKI.R;
-      curr_tile->ne.color.g = KHAKI.G;
-      curr_tile->ne.color.b = KHAKI.B;
-      curr_tile->ne.color.a = KHAKI.A;
+      // printf("KHAKI.R %d, G %d, B %d, A %d\n", KHAKI.R, KHAKI.G, KHAKI.B, KHAKI.A);
 
-      curr_tile->se.color.r = KHAKI.R;
-      curr_tile->se.color.g = KHAKI.G;
-      curr_tile->se.color.b = KHAKI.B;
-      curr_tile->se.color.a = KHAKI.A;
+      curr_tile->nw.color.r = DARK_KHAKI.R;
+      curr_tile->nw.color.g = DARK_KHAKI.G;
+      curr_tile->nw.color.b = DARK_KHAKI.B;
+      curr_tile->nw.color.a = DARK_KHAKI.A;
 
-      curr_tile->sw.color.r = KHAKI.R;
-      curr_tile->sw.color.g = KHAKI.G;
-      curr_tile->sw.color.b = KHAKI.B;
-      curr_tile->sw.color.a = KHAKI.A;
+      curr_tile->ne.color.r = DARK_KHAKI.R;
+      curr_tile->ne.color.g = DARK_KHAKI.G;
+      curr_tile->ne.color.b = DARK_KHAKI.B;
+      curr_tile->ne.color.a = DARK_KHAKI.A;
+
+      curr_tile->se.color.r = DARK_KHAKI.R;
+      curr_tile->se.color.g = DARK_KHAKI.G;
+      curr_tile->se.color.b = DARK_KHAKI.B;
+      curr_tile->se.color.a = DARK_KHAKI.A;
+
+      curr_tile->sw.color.r = DARK_KHAKI.R;
+      curr_tile->sw.color.g = DARK_KHAKI.G;
+      curr_tile->sw.color.b = DARK_KHAKI.B;
+      curr_tile->sw.color.a = DARK_KHAKI.A;
+
+      // printf("NW color: nw.color.r %d, nw.color.g %d, nw.color.b %d, nw.color.a %d\n",
+      //     curr_tile->nw.color.r, curr_tile->nw.color.g, curr_tile->nw.color.b, curr_tile->nw.color.a);
     }
   }
 }
 
 SDL_Vertex TransformGridToIsoPoint(SDL_Vertex& org)
 {
+  // @note: this is creating new vertex - maybe do not do that?
   SDL_Vertex ret_vertex;
   org.position.x = org.position.x / TILE_WIDTH;
   org.position.y = org.position.y / TILE_HEIGHT;
   ret_vertex.position.x = (float)(org.position.x * TILE_WIDTH * 1 + org.position.y * TILE_HEIGHT * -1);
   ret_vertex.position.y = (float)(org.position.x * 0.5 * TILE_WIDTH) + (float)(org.position.y * 0.5 * TILE_HEIGHT);
+
+  // Copy colors
+  ret_vertex.color.r = org.color.r;
+  ret_vertex.color.g = org.color.g;
+  ret_vertex.color.b = org.color.b;
+  ret_vertex.color.a = org.color.a;
+
   return ret_vertex;
 }
 
@@ -443,9 +460,9 @@ int main(int argc, char* argv[])
               on_clicked = GetClickedPosition(main_camera, x, y);
               on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
               on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
-              printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
-              printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
-              printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
+              // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
+              // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
+              // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
             }
             mouse_dragging = false;
             mouse_selection = true;
