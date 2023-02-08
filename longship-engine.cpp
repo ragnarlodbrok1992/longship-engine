@@ -5,6 +5,9 @@
 #include <SDL2/SDL.h>
 #pragma warning(pop)
 
+// Disable Spectre mitigation warning
+#pragma warning(disable: 5045)
+
 #include <stdio.h>
 #include <cstdint>
 
@@ -73,6 +76,8 @@ typedef struct
   SDL_Vertex  sw;
 
   // New version - SDL_Vertxes - now with color attached!
+  // @note: we create SDL_Vertex array with all of them stored together
+  SDL_Vertex vertices[4];
 
 } IsoTile;
 
@@ -127,31 +132,38 @@ void inline RenderLine(SDL_Renderer* renderer, Camera& camera, SDL_Vertex& start
     (int)(end.position.x + camera.center.x), (int)(end.position.y + camera.center.y));
 }
 
+void inline RenderInsideIsoTile(SDL_Renderer* renderer, Camera& camera, SDL_Vertex* vertices)
+{
+  SDL_Vertex top_vertices[3];
+  SDL_Vertex bottom_vertices[3];
+
+  for (int x = 0; x < 3; x++)
+  {
+    top_vertices[x] = {{vertices[x].position.x + camera.center.x,
+                        vertices[x].position.y + camera.center.y},
+                       {vertices[x].color.r, vertices[x].color.g, vertices[x].color.b, vertices[x].color.a},
+                       {}};
+    bottom_vertices[x] = {{vertices[x + 1].position.x + camera.center.x,
+                           vertices[x + 1].position.y + camera.center.y},
+                          {vertices[x + 1].color.r,
+                           vertices[x + 1].color.g,
+                           vertices[x + 1].color.b,
+                           vertices[x + 1].color.a},
+                          {}};
+  }
+
+  SDL_RenderGeometry(renderer, NULL, top_vertices, 3, NULL, 0);
+  SDL_RenderGeometry(renderer, NULL, bottom_vertices, 3, NULL, 0);
+}
+
 void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
 {
+  RenderInsideIsoTile(renderer, camera, iso_tile->vertices);
 
   RenderLine(renderer, camera, iso_tile->nw, iso_tile->ne);
   RenderLine(renderer, camera, iso_tile->ne, iso_tile->se);
   RenderLine(renderer, camera, iso_tile->se, iso_tile->sw);
   RenderLine(renderer, camera, iso_tile->sw, iso_tile->nw);
-
-
-  // After rendering line render inside - one pixel off
-  // Render inside polygon
-  // some_vertices - pointer to SDL_Vertex
-  // SDL_Point
-  // @note casting here is implicit
-  //SDL_Vertex curr_tile_sdl_vertex[] = {
-  //  {{iso_tile->nw.x, iso_tile->nw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-  //  {{iso_tile->ne.x, iso_tile->ne.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-  //  {{iso_tile->se.x, iso_tile->se.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}},
-  //  {{iso_tile->sw.x, iso_tile->sw.y}, {iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A}, {0, 0}}};
-
-  // SDL_SetRenderDrawColor(renderer, iso_tile->not_selected_color.R, iso_tile->not_selected_color.G, iso_tile->not_selected_color.B, iso_tile->not_selected_color.A); // <-- This might not be needed 
-  // TODO FIXME ragnar: here is a bug :)
-  // @note this needs testing in a different file
-  // SDL_RenderGeometry(renderer, NULL, curr_tile_sdl_vertex, 4, NULL, 0);
-  
 }
 
 void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, IsoTile arr[][TILESET_WIDTH])
@@ -208,6 +220,25 @@ void PopulateIsoTileGrid(IsoTile arr[][TILESET_WIDTH])
       // Setting colors - @note move this elsewhere
       // curr_tile->not_selected_color = KHAKI;
       // curr_tile->selected_color = DARK_KHAKI;
+      curr_tile->nw.color.r = KHAKI.R;
+      curr_tile->nw.color.g = KHAKI.G;
+      curr_tile->nw.color.b = KHAKI.B;
+      curr_tile->nw.color.a = KHAKI.A;
+
+      curr_tile->ne.color.r = KHAKI.R;
+      curr_tile->ne.color.g = KHAKI.G;
+      curr_tile->ne.color.b = KHAKI.B;
+      curr_tile->ne.color.a = KHAKI.A;
+
+      curr_tile->se.color.r = KHAKI.R;
+      curr_tile->se.color.g = KHAKI.G;
+      curr_tile->se.color.b = KHAKI.B;
+      curr_tile->se.color.a = KHAKI.A;
+
+      curr_tile->sw.color.r = KHAKI.R;
+      curr_tile->sw.color.g = KHAKI.G;
+      curr_tile->sw.color.b = KHAKI.B;
+      curr_tile->sw.color.a = KHAKI.A;
     }
   }
 }
@@ -217,16 +248,16 @@ SDL_Vertex TransformGridToIsoPoint(SDL_Vertex& org)
   SDL_Vertex ret_vertex;
   org.position.x = org.position.x / TILE_WIDTH;
   org.position.y = org.position.y / TILE_HEIGHT;
-  ret_vertex.position.x = org.position.x * TILE_WIDTH * 1 + org.position.y * TILE_HEIGHT * -1;
-  ret_vertex.position.y = (int)(org.position.x * 0.5 * TILE_WIDTH) + (int)(org.position.y * 0.5 * TILE_HEIGHT);
+  ret_vertex.position.x = (float)(org.position.x * TILE_WIDTH * 1 + org.position.y * TILE_HEIGHT * -1);
+  ret_vertex.position.y = (float)(org.position.x * 0.5 * TILE_WIDTH) + (float)(org.position.y * 0.5 * TILE_HEIGHT);
   return ret_vertex;
 }
 
 Point GetClickedPosition(Camera& cam, int& click_x, int& click_y)
 {
   Point ret_point;
-  ret_point.x = click_x - cam.center.x;
-  ret_point.y = click_y - cam.center.y;
+  ret_point.x = click_x - (int)cam.center.x;
+  ret_point.y = click_y - (int)cam.center.y;
   return ret_point;
 }
 
@@ -264,6 +295,12 @@ void MakeIsoTileGridIsometric(IsoTile arr[][TILESET_WIDTH])
       curr_tile->ne = TransformGridToIsoPoint(curr_tile->ne);
       curr_tile->se = TransformGridToIsoPoint(curr_tile->se);
       curr_tile->sw = TransformGridToIsoPoint(curr_tile->sw);
+
+      // Fill vertices array
+      curr_tile->vertices[0] = curr_tile->nw;
+      curr_tile->vertices[1] = curr_tile->ne;
+      curr_tile->vertices[2] = curr_tile->sw;
+      curr_tile->vertices[3] = curr_tile->se;
     }
   }
 }
@@ -385,8 +422,8 @@ int main(int argc, char* argv[])
             if (mouse_dragging)
             {
               // Modify camera values
-              main_camera.center.x += main_event.motion.xrel;
-              main_camera.center.y += main_event.motion.yrel;
+              main_camera.center.x += (float)main_event.motion.xrel;
+              main_camera.center.y += (float)main_event.motion.yrel;
 
               mouse_selection = false;
             }
@@ -464,14 +501,16 @@ int main(int argc, char* argv[])
     // Better to use SDL_AddTimer @maybe
     // Measure time at the end of frame
     uint32_t end_time = SDL_GetTicks();
-    uint32_t remaining_time = frame_time - (end_time - start_time);
+    int32_t remaining_time = (int)(frame_time - (end_time - start_time));
+    // @note: it's unsigned
 
     // If there is time - delay
     // TODO ragnar @improvement - some Spectre shit
     if (remaining_time > 0)
     {
-      SDL_Delay(remaining_time);
+      SDL_Delay((uint32_t)remaining_time);
     }
+    // End of frame
   }
 
   // Deinitialize stuff
