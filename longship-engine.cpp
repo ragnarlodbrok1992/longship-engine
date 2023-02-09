@@ -172,6 +172,11 @@ void RenderIsoTile(SDL_Renderer* renderer, Camera& camera, IsoTile* iso_tile)
   RenderLine(renderer, camera, iso_tile->vertices[2], iso_tile->vertices[0]);
 }
 
+bool inline CheckIsoTileBordersForRendering(IsoTile* iso_tile, int* top_left_x, int* top_left_y, int* bottom_right_x, int* bottom_right_y)
+{
+  return false;
+}
+
 void RenderIsoTileGrid(SDL_Renderer* renderer, Camera& camera, IsoTile arr[][TILESET_WIDTH])
 {
   for (int x = 0; x < TILESET_WIDTH; x++)
@@ -418,7 +423,7 @@ int main(int argc, char* argv[])
   }
 
   // Initialize some debug buttons
-  Button test_button = CreateButton(0, "Test button", {100, 100}, 100, 20);
+  // Button test_button = CreateButton(0, "Test button", {100, 100}, 100, 20);
 
   // IsoTile initialization
   PopulateIsoTileGrid(iso_tiles);
@@ -530,7 +535,7 @@ int main(int argc, char* argv[])
     RenderIsoTileGrid(main_renderer, main_camera, iso_tiles);
     
     // Render UI elements
-    RenderButton(main_renderer, test_button);
+    // RenderButton(main_renderer, test_button);
 
     // Update screen
     SDL_RenderPresent(main_renderer);
