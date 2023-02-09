@@ -9,6 +9,7 @@
 #pragma warning(disable: 5045)
 
 #include <stdio.h>
+#include <math.h>
 #include <cstdint>
 #include <cassert>
 
@@ -268,8 +269,8 @@ Point GetIsoTileFromClicked(int& clicked_pos_x, int& clicked_pos_y)
 {
   Point ret_point = {0, 0};
 
-  ret_point.x = (int)((2 * clicked_pos_y + clicked_pos_x) / (2 * TILE_WIDTH));
-  ret_point.y = (int)((2 * clicked_pos_y - clicked_pos_x) / (2 * TILE_HEIGHT));
+  ret_point.x = (int)(floor((float)(2 * clicked_pos_y + clicked_pos_x) / (2 * TILE_WIDTH)));
+  ret_point.y = (int)(floor((float)(2 * clicked_pos_y - clicked_pos_x) / (2 * TILE_HEIGHT)));
 
   return ret_point;
 }
@@ -398,6 +399,7 @@ int main(int argc, char* argv[])
   const uint32_t frame_time = 1000 / frame_rate;
   static bool mouse_dragging = false;
   static bool mouse_selection = true;
+  static bool is_user_not_interested_in_finishing_action = false;
 
   // Engine stuff initialization
   // Initialize iso_tiles with zeros
@@ -439,7 +441,43 @@ int main(int argc, char* argv[])
           }
         case SDL_MOUSEBUTTONDOWN:
           {
-            mouse_dragging = true;
+            // 1 - left mouse button, 2 - center mouse button, 3 - right mouse button
+            // Click on isotiles with left mouse button
+            if (main_event.button.button == 1)
+              // @TODO ragnar: if mouse has moved around a bit - do not click on isotile/ UI element
+              // because user is most lickely not interested in this after dragging mouse around
+              {
+                if (mouse_selection) {
+                  int x, y;
+                  Point on_clicked;
+                  Point on_iso;
+                  Point on_iso_coords;
+
+                  SDL_GetMouseState(&x, &y);
+                  on_clicked = GetClickedPosition(main_camera, x, y);
+                  on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
+                  on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
+                  // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
+                  // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
+                  // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
+
+                  // Clicking iso tile
+                  // printf("Creating event\n");
+                  Event e;
+                  e.type = EventType::CHANGE_COLOR;
+                  // printf("Passing x: %d, y: %d \n", on_iso.x, on_iso.y);
+                  IsoTileClicked(iso_tiles, &e, on_iso.x, on_iso.y);
+                }
+              }
+            
+            // Move map around with center mouse button
+            if (main_event.button.button == 2)
+            {
+              mouse_dragging = true;
+            }
+
+            // printf("Mouse button index: %d\n", main_event.button.button);
+
             break;
           }
         case SDL_MOUSEMOTION:
@@ -456,31 +494,15 @@ int main(int argc, char* argv[])
           }
         case SDL_MOUSEBUTTONUP:
           {
-            if (mouse_selection) {
-              mouse_selection = false;
-
-              int x, y;
-              Point on_clicked;
-              Point on_iso;
-              Point on_iso_coords;
-
-              SDL_GetMouseState(&x, &y);
-              on_clicked = GetClickedPosition(main_camera, x, y);
-              on_iso = GetIsoTileFromClicked(on_clicked.x, on_clicked.y);
-              on_iso_coords = GetIsoCoordsFromClicked(on_clicked.x, on_clicked.y);
-              // printf("Clicked on_clicked here: (%d, %d)\n", on_clicked.x, on_clicked.y);
-              // printf("Clicked on_iso here: (%d, %d)\n", on_iso.x, on_iso.y);
-              // printf("Clicked on_iso_coords here: (%d, %d)\n", on_iso_coords.x, on_iso_coords.y);
-
-              // Clicking iso tile
-              printf("Creating event\n");
-              Event e;
-              e.type = EventType::CHANGE_COLOR;
-              printf("Passing x: %d, y: %d \n", on_iso.x, on_iso.y);
-              IsoTileClicked(iso_tiles, &e, on_iso.x, on_iso.y);
+            // Click on isotiles with left mouse button
+            
+            // Move map around with center mouse button
+            if (main_event.button.button == 2)
+            {
+              mouse_dragging = false;
+              mouse_selection = true;
             }
-            mouse_dragging = false;
-            mouse_selection = true;
+
             // printf("Camera is now: (%d, %d)\n", main_camera.center.x, main_camera.center.y);
             break;
           }
