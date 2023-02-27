@@ -1,6 +1,7 @@
 #import "Basic";
 #import "Window_Creation";
 #import "Input";
+#import "Math";
 
 Simp :: #import "Simp";
 
@@ -47,10 +48,10 @@ IsoTile :: struct {
   id: int;
   
   // DEBUG stuff
-  nw: Point;
-  ne: Point;
-  se: Point;
-  sw: Point;
+  nw: PointF;
+  ne: PointF;
+  se: PointF;
+  sw: PointF;
 }
 
 // Define some colors
@@ -67,6 +68,24 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.ne = .{420, 69};
   iso_tile.se = .{420, 420};
   iso_tile.sw = .{69, 420};
+}
+
+draw_iso_tile :: (iso_tile: *IsoTile) {
+  v1 : Vector2 = .{iso_tile.nw.x, iso_tile.nw.y};
+  v2 : Vector2 = .{iso_tile.ne.x, iso_tile.ne.y};
+  v3 : Vector2 = .{iso_tile.se.x, iso_tile.se.y};
+  v4 : Vector2 = .{iso_tile.sw.x, iso_tile.sw.y};
+
+  print("v1: %, v2: %, v3: %, v4: %\n", v1, v2, v3, v4);
+  Simp.immediate_quad(v1, v2, v3, v4, .{1.0, 1.0, 1.0, 1.0});
+}
+
+draw_line :: (start: PointF, end: PointF) {
+  // TODO ragnar: untested for now
+  v1 : Vector2 = .{start.x, start.y};
+  v2 : Vector2 = .{end.x, end.y};
+
+  Simp.immediate_quad(v1, v1, v2, v2);
 }
 
 main :: () {
@@ -104,8 +123,6 @@ main :: () {
   while !QUIT {
     reset_temporary_storage();
 
-    Simp.clear_render_target(.0, .0, .0, 1);
-
     update_window_events();
 
     // Check input events
@@ -121,8 +138,17 @@ main :: () {
       }
     }
     // End of checking input events
+
+    // Rendering shit
+    Simp.clear_render_target(.0, .0, .0, 1);
     
     // Render something for debug purposes
+    // Simp.immediate_quad(debug_iso_tile.nw,
+    //                     debug_iso_tile.ne,
+    //                     debug_iso_tile.se,
+    //                     debug_iso_tile.sw);
+
+    draw_iso_tile(debug_iso_tile);
 
     // Swapping buffers - goes after rendering
     Simp.swap_buffers(MAIN_ENGINE_WINDOW);
