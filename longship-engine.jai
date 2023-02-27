@@ -76,8 +76,8 @@ draw_iso_tile :: (iso_tile: *IsoTile) {
   v3 : Vector2 = .{iso_tile.se.x, iso_tile.se.y};
   v4 : Vector2 = .{iso_tile.sw.x, iso_tile.sw.y};
 
-  print("v1: %, v2: %, v3: %, v4: %\n", v1, v2, v3, v4);
-  Simp.immediate_quad(v1, v2, v3, v4, .{1.0, 1.0, 1.0, 1.0});
+  // print("v1: %, v2: %, v3: %, v4: %\n", v1, v2, v3, v4);
+  Simp.immediate_quad(v1, v2, v3, v4, .{255, 255, 255, 255});
 }
 
 draw_line :: (start: PointF, end: PointF) {
@@ -121,7 +121,6 @@ main :: () {
 
   // Main SIMP loop
   while !QUIT {
-    reset_temporary_storage();
 
     update_window_events();
 
@@ -138,9 +137,9 @@ main :: () {
       }
     }
     // End of checking input events
-
     // Rendering shit
     Simp.clear_render_target(.0, .0, .0, 1);
+    Simp.set_shader_for_color();
     
     // Render something for debug purposes
     // Simp.immediate_quad(debug_iso_tile.nw,
@@ -153,6 +152,7 @@ main :: () {
     // Swapping buffers - goes after rendering
     Simp.swap_buffers(MAIN_ENGINE_WINDOW);
 
-    memory_visualizer_per_frame_update();
+    reset_temporary_storage();
+    // memory_visualizer_per_frame_update();
   }
 }
