@@ -2,16 +2,18 @@
 #import "Window_Creation";
 #import "Input";
 #import "Math";
+#import "SDL";
+#import "GL";
 
-Simp :: #import "Simp";
+// Simp :: #import "Simp";
 
 
 // Engine internal variables
 QUIT := false;
 
-WINDOW_TITLE_BAR : string = "Longship Engine";
-WINDOW_WIDTH : s16 = 1024;
-WINDOW_HEIGHT : s16 = 768;
+WINDOW_TITLE_BAR : *u8 = "Longship Engine";
+WINDOW_WIDTH : s32 = 1024;
+WINDOW_HEIGHT : s32 = 768;
 
 // TODO ragnar: create a grid of isotiles
 ISO_TILESET_WIDTH := 1000;
@@ -76,17 +78,12 @@ draw_iso_tile :: (iso_tile: *IsoTile) {
   v3 : Vector2 = .{iso_tile.se.x, iso_tile.se.y};
   v4 : Vector2 = .{iso_tile.sw.x, iso_tile.sw.y};
 
-  // print("v1: %, v2: %, v3: %, v4: %\n", v1, v2, v3, v4);
-  Simp.immediate_quad(v1, v2, v3, v4, .{255, 255, 255, 255});
+  // TODO ragnar: draw iso_tile in opengl
+
 }
 
 draw_line :: (start: PointF, end: PointF) {
   // TODO ragnar: untested for now
-  v1 : Vector2 = .{start.x, start.y};
-  v2 : Vector2 = .{end.x, end.y};
-
-  Simp.immediate_triangle()
-  // Simp.immediate_quad(v1, .{0.0, 0.0}, .{300.0, 300.0}, v2, .{255, 255, 255, 255});
 }
 
 main :: () {
@@ -117,44 +114,57 @@ main :: () {
   }
 
   // Engine initialization
-  MAIN_ENGINE_WINDOW := create_window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE_BAR);
-  Simp.set_render_target(MAIN_ENGINE_WINDOW);
+  SDL_Init(SDL_INIT_VIDEO);
 
-  // Main SIMP loop
+  MAIN_ENGINE_WINDOW := SDL_CreateWindow(WINDOW_TITLE_BAR, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xx WINDOW_WIDTH, xx WINDOW_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+  if MAIN_ENGINE_WINDOW == null {
+    print("Could not create window: %\n", to_string(SDL_GetError()));
+    return;
+  }
+
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, xx SDL_GL_CONTEXT_PROFILE_CORE);
+
+  gl_context := SDL_GL_CreateContext(MAIN_ENGINE_WINDOW);
+
+  if !gl_context {
+    print("Could not create OpenGL context: %\n", to_string(SDL_GetError()));
+    return;
+  }
+
+  gl_load(*gl, SDL_GL_GetProcAddress);
+  using gl;
+  
+  print("GL Vendor = %\n", to_string(glGetString(GL_VENDOR)));
+  print("GL Version = %\n", to_string(glGetString(GL_VERSION)));
+
+  // Main LongshipEngine loop
   while !QUIT {
-
-    update_window_events();
-
     // Check input events
-    for events_this_frame {
-      if it.type == .QUIT then QUIT = true;
 
-      if it.type == .KEYBOARD {
-        if it.key_pressed == 0 continue;
-
-        if it.key_code == .ESCAPE {
+    event : SDL_Event;
+    while SDL_PollEvent(*event) {
+      if event.type == {
+        case SDL_QUIT;
           QUIT = true;
-        }
+        case SDL_KEYUP;
+          if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
+        case SDL_WINDOWEVENT;
+          if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
+            WINDOW_WIDTH = event.window.data1;
+            WINDOW_HEIGHT = event.window.data2;
+          }
       }
     }
+
     // End of checking input events
     // Rendering shit
-    Simp.clear_render_target(.0, .0, .0, 1);
-    Simp.set_shader_for_color();
-    
-    // Render something for debug purposes
-    // Simp.immediate_quad(debug_iso_tile.nw,
-    //                     debug_iso_tile.ne,
-    //                     debug_iso_tile.se,
-    //                     debug_iso_tile.sw);
 
-    draw_iso_tile(debug_iso_tile);
-    draw_line(.{100, 100}, .{200, 200});
+    glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    // Swapping buffers - goes after rendering
-    Simp.swap_buffers(MAIN_ENGINE_WINDOW);
-
-    reset_temporary_storage();
-    // memory_visualizer_per_frame_update();
+    SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
   }
+
+  SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
+  SDL_Quit();
 }
