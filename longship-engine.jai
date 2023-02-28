@@ -85,7 +85,8 @@ draw_line :: (start: PointF, end: PointF) {
   v1 : Vector2 = .{start.x, start.y};
   v2 : Vector2 = .{end.x, end.y};
 
-  Simp.immediate_quad(v1, v1, v2, v2);
+  Simp.immediate_triangle()
+  // Simp.immediate_quad(v1, .{0.0, 0.0}, .{300.0, 300.0}, v2, .{255, 255, 255, 255});
 }
 
 main :: () {
@@ -148,6 +149,7 @@ main :: () {
     //                     debug_iso_tile.sw);
 
     draw_iso_tile(debug_iso_tile);
+    draw_line(.{100, 100}, .{200, 200});
 
     // Swapping buffers - goes after rendering
     Simp.swap_buffers(MAIN_ENGINE_WINDOW);
