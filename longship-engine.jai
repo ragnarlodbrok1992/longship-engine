@@ -1,12 +1,33 @@
 #import "Basic";
+
 #import "Window_Creation";
 #import "Input";
 #import "Math";
 #import "SDL";
 #import "GL";
 
-// Simp :: #import "Simp";
+// Shaders - for now here
+vertex_shader :: #string GLSL
+  #version 330 core
+  layout(location = 0) in vec3 vertexPosition_modelspace;
 
+  void main() {
+      gl_Position.xyz = vertexPosition_modelspace;
+      gl_Position.w = 1.0; 
+  }
+GLSL
+
+fragment_shader :: #string GLSL
+  #version 330 core
+
+  in vec3 fragmentColor;
+
+  out vec3 color;
+
+  void main() {
+    color = fragmentColor;
+  }
+GLSL
 
 // Engine internal variables
 QUIT := false;
@@ -91,12 +112,21 @@ main :: () {
   print("Hello, longship-engine!\n");
 
   // DEBUG prints
-  print("BLACK: %\n", BLACK);
+  print("%\n", vertex_shader);
+  print("====================\n");
+  print("%\n", fragment_shader);
 
-  // DEBUG stack variables
-  // debug_iso_tile: *IsoTile;
+  // DEBUG variables
   debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
   // This is allocated on heap with alloc - check what should I do with maybe context allocator?
+  g_vertex_buffer_data: [9]GLfloat;  
+  /*
+  {
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    0.0f, 1.0f, 0.0f
+  };
+  */
 
   print("IsoTile: %\n", <<debug_iso_tile);
   populate_iso_tile(debug_iso_tile); 
@@ -137,6 +167,15 @@ main :: () {
   print("GL Vendor = %\n", to_string(glGetString(GL_VENDOR)));
   print("GL Version = %\n", to_string(glGetString(GL_VERSION)));
 
+  // Defering stuff
+  defer SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
+  defer SDL_Quit();
+
+  // Create VAO
+  vertex_array_id : GLuint;
+  glGenVertexArrays(1, *vertex_array_id);
+  glBindVertexArray(vertex_array_id);
+
   // Main LongshipEngine loop
   while !QUIT {
     // Check input events
@@ -164,7 +203,4 @@ main :: () {
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
   }
-
-  SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
-  SDL_Quit();
 }
