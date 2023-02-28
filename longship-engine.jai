@@ -1,6 +1,6 @@
 #import "Basic";
 
-#import "Window_Creation";
+// #import "Window_Creation";
 #import "Input";
 #import "Math";
 #import "SDL";
@@ -10,10 +10,15 @@
 vertex_shader :: #string GLSL
   #version 330 core
   layout(location = 0) in vec3 vertexPosition_modelspace;
+  layout(location = 1) in vec3 vertexColor;
+
+  out vec3 fragmentColor;
 
   void main() {
       gl_Position.xyz = vertexPosition_modelspace;
       gl_Position.w = 1.0; 
+
+      fragmentColor = vertexColor;
   }
 GLSL
 
@@ -119,8 +124,10 @@ main :: () {
   // DEBUG variables
   debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
   // This is allocated on heap with alloc - check what should I do with maybe context allocator?
-  // g_vertex_buffer_data: [9]GLfloat;  
+
+  // Buffer data
   g_vertex_buffer_data := GLfloat.[-1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0];
+  g_color_buffer_data := GLfloat.[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
 
   // IsoTile
   print("IsoTile: %\n", <<debug_iso_tile);
@@ -172,10 +179,75 @@ main :: () {
   glBindVertexArray(vertex_array_id);
 
   // Create VB - vertex buffer for triangle
-  vertex_buffer : GLuint;
-  glGenBuffers(1, *vertex_buffer);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  vertex_buffer_vertices : GLuint;
+  glGenBuffers(1, *vertex_buffer_vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_vertices);
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(g_vertex_buffer_data)), *g_vertex_buffer_data, GL_STATIC_DRAW);
+
+  // Create VB - vertex buffer for triangle color
+  vertex_buffer_colors : GLuint;
+  glGenBuffers(1, *vertex_buffer_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(g_color_buffer_data)), *g_color_buffer_data, GL_STATIC_DRAW);
+  
+  // Shaders
+  shader_program : GLuint = 0;
+  vertex_shader_id : GLuint = 0;
+  fragment_shader_id : GLuint = 0;
+
+  // glUseProgram(shader_handle);
+  shader_program = glCreateProgram();
+  vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
+  fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+
+  // DEBUG stuff with strings
+  // print(".data %\n", vertex_shader.data);
+
+  // Compile vertex shader
+  glShaderSource(vertex_shader_id, 1, *to_c_string(vertex_shader), null);
+  glCompileShader(vertex_shader_id);
+
+  // Check vertex shader
+  result_vertex : GLint;
+  info_log_length_vertex : s32;
+  glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, *result_vertex);
+  glGetShaderiv(vertex_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_vertex);
+  // print("Info log length vertex: %\n", info_log_length_vertex);
+  // TODO ragnar: add checking for failing shader
+
+  // Compile fragment shader 
+  glShaderSource(fragment_shader_id, 1, *to_c_string(fragment_shader), null);
+  glCompileShader(fragment_shader_id);
+
+  // Check fragment shader
+  result_fragment : GLint;
+  info_log_length_fragment : s32;
+  glGetShaderiv(fragment_shader_id, GL_COMPILE_STATUS, *result_fragment);
+  glGetShaderiv(fragment_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_fragment);
+  // print("Info log length fragment: %\n", info_log_length_fragment);
+  // TODO ragnar: add checking for failing shader
+
+  // Linking the program
+  program_id : GLuint;
+  program_id = glCreateProgram();
+  glAttachShader(program_id, vertex_shader_id);
+  glAttachShader(program_id, fragment_shader_id);
+  glLinkProgram(program_id);
+
+  // Checking the program
+  result_program : GLint;
+  info_log_length_program: s32;
+  glGetProgramiv(program_id, GL_LINK_STATUS, *result_program);
+  glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, *info_log_length_program);
+
+  // print("Info log length program: %\n", info_log_length_program);
+
+  // Now we can detach and delete shaders
+  glDetachShader(program_id, vertex_shader_id);
+  glDetachShader(program_id, fragment_shader_id);
+
+  glDeleteShader(vertex_shader_id);
+  glDeleteShader(fragment_shader_id);
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -195,21 +267,34 @@ main :: () {
           }
       }
     }
-
-    // End of checking input events
     // Rendering shit
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
+
+    // Shader program
+    glUseProgram(program_id);
+
+    // End of checking input events
     glClear(GL_COLOR_BUFFER_BIT);
 
     // OpenGL shit
     glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_vertices);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_colors);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
     // Drawing is here
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
   }
+
+  // Delete OpenGL stuff
+  glDeleteProgram(program_id);
+  glDeleteVertexArrays(1, *vertex_array_id);
 }
