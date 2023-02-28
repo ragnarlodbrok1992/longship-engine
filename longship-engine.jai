@@ -119,15 +119,10 @@ main :: () {
   // DEBUG variables
   debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
   // This is allocated on heap with alloc - check what should I do with maybe context allocator?
-  g_vertex_buffer_data: [9]GLfloat;  
-  /*
-  {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    0.0f, 1.0f, 0.0f
-  };
-  */
+  // g_vertex_buffer_data: [9]GLfloat;  
+  g_vertex_buffer_data := GLfloat.[-1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0];
 
+  // IsoTile
   print("IsoTile: %\n", <<debug_iso_tile);
   populate_iso_tile(debug_iso_tile); 
   print("IsoTile: %\n", <<debug_iso_tile);
@@ -176,6 +171,12 @@ main :: () {
   glGenVertexArrays(1, *vertex_array_id);
   glBindVertexArray(vertex_array_id);
 
+  // Create VB - vertex buffer for triangle
+  vertex_buffer : GLuint;
+  glGenBuffers(1, *vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(g_vertex_buffer_data)), *g_vertex_buffer_data, GL_STATIC_DRAW);
+
   // Main LongshipEngine loop
   while !QUIT {
     // Check input events
@@ -197,9 +198,17 @@ main :: () {
 
     // End of checking input events
     // Rendering shit
-
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // OpenGL shit
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+    // Drawing is here
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDisableVertexAttribArray(0);
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
   }
