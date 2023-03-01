@@ -1,3 +1,5 @@
+LongshipEngine:
+
 1. Create and draw tileset - chess like DONE.
 2. Move this tileset to isometric view DONE.
 3. Calculate clicks and make isotiles selectable DONE.
@@ -9,4 +11,10 @@
 7. Create some UI elements - text rectangle, on/off button
 8. Render text on screen in SDL - create some example code
 9. Create UI panels - somewhat opaque panes with borders that group UI elements.
+
+OpenGL:
+
+1. Check how do the camera for 2d world.
+   TODO ragnar: here we can use MVP stuff from CPP hexcube engine with some tweaks.
+     We only want to move in X and Y axis and zoom (moving on Z axis) and thats all.
 

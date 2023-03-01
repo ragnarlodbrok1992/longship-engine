@@ -20,3 +20,48 @@ That said...
 
      Stuff above is JAI specific and I'm not thinking about it too much. a. is creating data -
      source of it could be anything. For now hardcoding.
+
+  e. Creating VAO - Vertex Array Object. I don't know what is the best practice here - have one
+     VAO and then push a lot vertex/color buffers data there or have one VAO for one "object" in
+     game engine. In my triangle example I have only one.
+
+     Tutorial says it is best to set up VAO once and reuse it over and over. Driver for GPU
+     might do some optimization here.
+
+  f. Create vertex buffers for vertices/colors/whatnot. Those are storing actual data and how we
+     set this data there is up to us. It can be AoS, SoA, whatever.
+
+  g. Loading and creating shaders. This require us to first glCreateProgram.
+
+  h. Load shader code. From program or glsl file. Use glCreateShader to have shader_ids.
+
+  i. glShaderSource and glCompileShader -> first points to string with shader code. glCompileShader does
+     what it says.
+
+  j. After compiling shader you attach them to program created by glCreateProgram.
+
+  k. Created program returns GLuint with it's number, you can glDetachShader -> glDeleteShader after.
+
+  -- MOVING TO RENDER LOOP -- 
+
+  l. Use shader program -> glUseProgram with program_id.
+
+  m. glClear -> clear screen.
+
+  n. Enabling vertex attrib arrays. I think this has to do with input/output of shader programs.
+     TODO ragnar: look into it a bit more
+
+  o. Binding buffers -> VertexAttribPointer -> This might be that we are setting pointer to different buffers and
+     then selecting which data goes to which attrib pointer.
+  
+  p. glDrawArrays -> as lines, triangles, whatnot. Here we are telling how much triangles we are going to draw.
+
+  r. Disabling vertex attrib arrays -> 0 and 1.
+
+  s. SDL_GL_SwapWindow -> I think here we are swapping buffers -> one that is already displayed and one
+     that we build in this one frame that we are trying to render.
+
+2. Stuff that needs further investigation.
+
+  a. VertexAttribPointer and Shader programs -> How to feed data inside the shaders.
+
