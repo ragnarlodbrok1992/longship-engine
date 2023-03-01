@@ -7,12 +7,14 @@
 #import "GL";
 
 // Shaders - for now here
-vertex_shader :: #string GLSL
+VERTEX_SHADER :: #string GLSL
   #version 330 core
   layout(location = 0) in vec3 vertexPosition_modelspace;
   layout(location = 1) in vec3 vertexColor;
 
   out vec3 fragmentColor;
+
+  kutas
 
   void main() {
       gl_Position.xyz = vertexPosition_modelspace;
@@ -22,7 +24,7 @@ vertex_shader :: #string GLSL
   }
 GLSL
 
-fragment_shader :: #string GLSL
+FRAGMENT_SHADER :: #string GLSL
   #version 330 core
 
   in vec3 fragmentColor;
@@ -112,14 +114,90 @@ draw_line :: (start: PointF, end: PointF) {
   // TODO ragnar: untested for now
 }
 
+load_shaders :: () -> GLuint {
+  // Right now loading shaders from local strings
+  program_id : GLuint;
+  shader_program : GLuint;
+  vertex_shader_id : GLuint;
+  fragment_shader_id : GLuint;
+  result_vertex : GLint;
+  result_fragment : GLint;
+  result_program : GLint;
+  info_log_length_vertex : s32;
+  info_log_length_fragment : s32;
+  info_log_length_program : s32;
+
+  shader_program = glCreateProgram();
+  vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
+  fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
+
+  glShaderSource(vertex_shader_id, 1, *to_c_string(VERTEX_SHADER), null);
+  glCompileShader(vertex_shader_id);
+
+  glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, *result_vertex);
+  glGetShaderiv(vertex_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_vertex);
+
+  // TODO ragnar: add checking for errors
+  if (info_log_length_vertex > 0) {
+    vertex_shader_error_log : [..]u8;
+    print("Something is no yes\n");
+    print("%\n", info_log_length_vertex);
+
+    vertex_shader_error_log.allocator = temp;
+
+    glGetShaderInfoLog(vertex_shader_id, cast(u32)info_log_length_vertex, null, *vertex_shader_error_log);
+    print("%\n", vertex_shader_error_log);
+    print("Count: %\n", vertex_shader_error_log.count);
+    print("Data: %\n", vertex_shader_error_log.data);
+  }
+
+  glShaderSource(fragment_shader_id, 1, *to_c_string(FRAGMENT_SHADER), null);
+  glCompileShader(fragment_shader_id);
+
+  glGetShaderiv(fragment_shader_id, GL_COMPILE_STATUS, *result_fragment);
+  glGetShaderiv(fragment_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_fragment);
+
+  // TODO ragnar: add checking for errors
+  if (info_log_length_fragment > 0) {
+    fragment_shader_error_log : string;
+    glGetShaderInfoLog(fragment_shader_id, cast(u32)info_log_length_fragment, null, to_c_string(fragment_shader_error_log));
+    print("%\n", fragment_shader_error_log);
+  }
+
+  // Creating and attaching compiled shaders to program
+  program_id = glCreateProgram();
+  glAttachShader(program_id, vertex_shader_id);
+  glAttachShader(program_id, fragment_shader_id);
+  glLinkProgram(program_id);
+
+  glGetProgramiv(program_id, GL_LINK_STATUS, *result_program);
+  glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, *info_log_length_program);
+
+  // TODO ragnar: add checking for errors
+  if (info_log_length_program > 0) {
+    program_error_log : string;
+    glGetProgramInfoLog(program_id, cast(u32)info_log_length_fragment, null, to_c_string(program_error_log));
+    print("%\n", program_error_log);
+  }
+
+  // Now we can detach and delete shaders
+  glDetachShader(program_id, vertex_shader_id);
+  glDetachShader(program_id, fragment_shader_id);
+
+  glDeleteShader(vertex_shader_id);
+  glDeleteShader(fragment_shader_id);
+
+  return program_id;
+}
+
 main :: () {
   // Welcoming messages
   print("Hello, longship-engine!\n");
 
   // DEBUG prints
-  print("%\n", vertex_shader);
+  print("%\n", VERTEX_SHADER);
   print("====================\n");
-  print("%\n", fragment_shader);
+  print("%\n", FRAGMENT_SHADER);
 
   // DEBUG variables
   debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
@@ -190,64 +268,8 @@ main :: () {
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_colors);
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(g_color_buffer_data)), *g_color_buffer_data, GL_STATIC_DRAW);
   
-  // Shaders
-  shader_program : GLuint = 0;
-  vertex_shader_id : GLuint = 0;
-  fragment_shader_id : GLuint = 0;
-
-  // glUseProgram(shader_handle);
-  shader_program = glCreateProgram();
-  vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
-  fragment_shader_id = glCreateShader(GL_FRAGMENT_SHADER);
-
-  // DEBUG stuff with strings
-  // print(".data %\n", vertex_shader.data);
-
-  // Compile vertex shader
-  glShaderSource(vertex_shader_id, 1, *to_c_string(vertex_shader), null);
-  glCompileShader(vertex_shader_id);
-
-  // Check vertex shader
-  result_vertex : GLint;
-  info_log_length_vertex : s32;
-  glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, *result_vertex);
-  glGetShaderiv(vertex_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_vertex);
-  // print("Info log length vertex: %\n", info_log_length_vertex);
-  // TODO ragnar: add checking for failing shader
-
-  // Compile fragment shader 
-  glShaderSource(fragment_shader_id, 1, *to_c_string(fragment_shader), null);
-  glCompileShader(fragment_shader_id);
-
-  // Check fragment shader
-  result_fragment : GLint;
-  info_log_length_fragment : s32;
-  glGetShaderiv(fragment_shader_id, GL_COMPILE_STATUS, *result_fragment);
-  glGetShaderiv(fragment_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_fragment);
-  // print("Info log length fragment: %\n", info_log_length_fragment);
-  // TODO ragnar: add checking for failing shader
-
-  // Linking the program
-  program_id : GLuint;
-  program_id = glCreateProgram();
-  glAttachShader(program_id, vertex_shader_id);
-  glAttachShader(program_id, fragment_shader_id);
-  glLinkProgram(program_id);
-
-  // Checking the program
-  result_program : GLint;
-  info_log_length_program: s32;
-  glGetProgramiv(program_id, GL_LINK_STATUS, *result_program);
-  glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, *info_log_length_program);
-
-  // print("Info log length program: %\n", info_log_length_program);
-
-  // Now we can detach and delete shaders
-  glDetachShader(program_id, vertex_shader_id);
-  glDetachShader(program_id, fragment_shader_id);
-
-  glDeleteShader(vertex_shader_id);
-  glDeleteShader(fragment_shader_id);
+  // Loading shaders
+  program_id := load_shaders();
 
   // Main LongshipEngine loop
   while !QUIT {
