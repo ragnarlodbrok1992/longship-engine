@@ -72,48 +72,92 @@ Line :: struct {
   end: Point;
 }
 
+OGLColor :: struct {
+  r: GLfloat;
+  g: GLfloat;
+  b: GLfloat;
+}
+
+OGLPoint :: struct {
+  x: GLfloat;
+  y: GLfloat;
+  z: GLfloat = 0.0; // Sticking to one plane for now
+}
+  
 IsoTile :: struct {
   id: int;
+
+  // DEBUG stuff -> Those points will move to opengl stuff
+  // nw: PointF;
+  // ne: PointF;
+  // se: PointF;
+  // sw: PointF;
+
+  // OpenGL stuff
+  nw: OGLPoint;
+  ne: OGLPoint;
+  se: OGLPoint;
+  sw: OGLPoint;
+
+  // Colors - one color for each point to keep things simple for now
+  color_nw: OGLColor;
+  color_ne: OGLColor;
+  color_se: OGLColor;
+  color_sw: OGLColor;
+
+  // OpenGL Buffers
+  vertex_buffer_vertices : GLuint;
+  vertex_buffer_colors: GLuint;
+}
+
+create_iso_tile :: (iso_tile: *IsoTile) {
+  // TODO ragnar: parametrize, rn hardcoded
   
-  // DEBUG stuff
-  nw: PointF;
-  ne: PointF;
-  se: PointF;
-  sw: PointF;
+
 }
 
 // Define some colors
-BLACK : Color = .{0, 0, 0, 255};
-RED : Color = .{255, 0, 0, 255};
-GREEN : Color = .{0, 255, 0, 255};
-BLUE : Color = .{0, 0, 255, 255};
-KHAKI : Color = .{240, 230, 140, 255};
-DARK_KHAKI : Color = .{189, 183, 107, 255};
+// BLACK : Color = .{0, 0, 0, 255};
+// RED : Color = .{255, 0, 0, 255};
+// GREEN : Color = .{0, 255, 0, 255};
+// BLUE : Color = .{0, 0, 255, 255};
+// KHAKI : Color = .{240, 230, 140, 255};
+// DARK_KHAKI : Color = .{189, 183, 107, 255};
+
+BLACK : OGLColor = .{0, 0, 0};
+RED : OGLColor = .{1.0, 0, 0};
+GREEN : OGLColor = .{0, 1.0, 0};
+BLUE : OGLColor = .{0, 0, 1.0};
+KHAKI : OGLColor = .{0.941, 0.901, 0.549};
+DARK_KHAKI : OGLColor = .{0.741, 0.7176, 0.419};
 
 // Define functions
-populate_iso_tile :: (iso_tile: *IsoTile) {
-  iso_tile.nw = .{69, 69};
-  iso_tile.ne = .{420, 69};
-  iso_tile.se = .{420, 420};
-  iso_tile.sw = .{69, 420};
-}
+// populate_iso_tile :: (iso_tile: *IsoTile) {
+//   iso_tile.nw = .{69, 69};
+//   iso_tile.ne = .{420, 69};
+//   iso_tile.se = .{420, 420};
+//   iso_tile.sw = .{69, 420};
+// }
 
-draw_iso_tile :: (iso_tile: *IsoTile) {
-  v1 : Vector2 = .{iso_tile.nw.x, iso_tile.nw.y};
-  v2 : Vector2 = .{iso_tile.ne.x, iso_tile.ne.y};
-  v3 : Vector2 = .{iso_tile.se.x, iso_tile.se.y};
-  v4 : Vector2 = .{iso_tile.sw.x, iso_tile.sw.y};
+// draw_iso_tile :: (iso_tile: *IsoTile) {
+//   v1 : Vector2 = .{iso_tile.nw.x, iso_tile.nw.y};
+//   v2 : Vector2 = .{iso_tile.ne.x, iso_tile.ne.y};
+//   v3 : Vector2 = .{iso_tile.se.x, iso_tile.se.y};
+//   v4 : Vector2 = .{iso_tile.sw.x, iso_tile.sw.y};
+// 
+//   // TODO ragnar: draw iso_tile in opengl
+// 
+// }
 
-  // TODO ragnar: draw iso_tile in opengl
-
-}
-
-draw_line :: (start: PointF, end: PointF) {
-  // TODO ragnar: untested for now
-}
+// draw_line :: (start: PointF, end: PointF) {
+//   // TODO ragnar: untested for now
+// }
 
 load_shaders :: () -> GLuint {
   // Right now loading shaders from local strings
+  // No error path if something goes wrong
+  // Just prints
+
   program_id : GLuint;
   shader_program : GLuint;
   vertex_shader_id : GLuint;
@@ -191,7 +235,7 @@ main :: () {
   print("%\n", FRAGMENT_SHADER);
 
   // DEBUG variables
-  debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
+  // debug_iso_tile := New(IsoTile); // TODO ragnar: check what is going here - heap allocation?
   // This is allocated on heap with alloc - check what should I do with maybe context allocator?
 
   // Buffer data
@@ -199,9 +243,9 @@ main :: () {
   g_color_buffer_data := GLfloat.[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
 
   // IsoTile
-  print("IsoTile: %\n", <<debug_iso_tile);
-  populate_iso_tile(debug_iso_tile); 
-  print("IsoTile: %\n", <<debug_iso_tile);
+  // print("IsoTile: %\n", <<debug_iso_tile);
+  // populate_iso_tile(debug_iso_tile); 
+  // print("IsoTile: %\n", <<debug_iso_tile);
 
   // Getting command line arguments
   args := get_command_line_arguments();
