@@ -14,8 +14,6 @@ VERTEX_SHADER :: #string GLSL
 
   out vec3 fragmentColor;
 
-  kutas
-
   void main() {
       gl_Position.xyz = vertexPosition_modelspace;
       gl_Position.w = 1.0; 
@@ -139,16 +137,9 @@ load_shaders :: () -> GLuint {
 
   // TODO ragnar: add checking for errors
   if (info_log_length_vertex > 0) {
-    vertex_shader_error_log : [..]u8;
-    print("Something is no yes\n");
-    print("%\n", info_log_length_vertex);
-
-    vertex_shader_error_log.allocator = temp;
-
-    glGetShaderInfoLog(vertex_shader_id, cast(u32)info_log_length_vertex, null, *vertex_shader_error_log);
-    print("%\n", vertex_shader_error_log);
-    print("Count: %\n", vertex_shader_error_log.count);
-    print("Data: %\n", vertex_shader_error_log.data);
+    vertex_shader_error_log : [512]u8;
+    glGetShaderInfoLog(vertex_shader_id, cast(u32)info_log_length_vertex, null, cast(*GLchar) *vertex_shader_error_log);
+    print("%\n", cast(string) vertex_shader_error_log);
   }
 
   glShaderSource(fragment_shader_id, 1, *to_c_string(FRAGMENT_SHADER), null);
@@ -159,9 +150,9 @@ load_shaders :: () -> GLuint {
 
   // TODO ragnar: add checking for errors
   if (info_log_length_fragment > 0) {
-    fragment_shader_error_log : string;
-    glGetShaderInfoLog(fragment_shader_id, cast(u32)info_log_length_fragment, null, to_c_string(fragment_shader_error_log));
-    print("%\n", fragment_shader_error_log);
+    fragment_shader_error_log : [512]u8;
+    glGetShaderInfoLog(fragment_shader_id, cast(u32)info_log_length_fragment, null, cast(*GLchar) *fragment_shader_error_log);
+    print("%\n", cast(string) fragment_shader_error_log);
   }
 
   // Creating and attaching compiled shaders to program
