@@ -13,10 +13,11 @@ VERTEX_SHADER :: #string GLSL
   layout(location = 1) in vec3 vertexColor;
 
   out vec3 fragmentColor;
+  
+  uniform mat4 MVP;
 
   void main() {
-      gl_Position.xyz = vertexPosition_modelspace;
-      gl_Position.w = 1.0; 
+      gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -369,6 +370,13 @@ main :: () {
   // Loading shaders
   program_id := load_shaders();
 
+  // Getting MatrixID for MVP
+  matrix_id := glGetUniformLocation(program_id, "MVP");
+
+  // Create orhographic projection matrix
+  op_matrix := orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, -10.0, 10.0);
+  print("Ortographic projection matrix: %\n", op_matrix);
+
   // Main LongshipEngine loop
   while !QUIT {
     // Check input events
@@ -392,6 +400,9 @@ main :: () {
 
     // Shader program
     glUseProgram(program_id);
+
+    // Set up camera
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *op_matrix);
 
     // End of checking input events
     glClear(GL_COLOR_BUFFER_BIT);
