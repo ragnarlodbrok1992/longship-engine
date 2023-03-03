@@ -41,7 +41,7 @@ WINDOW_TITLE_BAR : *u8 = "Longship Engine";
 WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
-// TODO ragnar: create a grid of isotiles
+// @TODO ragnar: create a grid of isotiles
 ISO_TILESET_WIDTH := 1000;
 ISO_TILESET_HEIGHT := 1000;
 ISO_TILE_WIDTH := 20;
@@ -100,106 +100,97 @@ IsoTile :: struct {
   color_sw: OGLColor;
 
   // OpenGL Buffers - ids
-  vertex_buffer_vertices_0 : GLuint;
-  vertex_buffer_colors_0: GLuint;
-  vertex_buffer_vertices_1 : GLuint;
-  vertex_buffer_colors_1: GLuint;
+  // Final version - only 4 points required
+  // @improvement we will just offset second triangle
+  // and be fine about it
+  vertex_buffer_vertices : GLuint;
+  vertex_buffer_colors : GLuint;
 
   // OpenGL Buffers - containers
-  vertex_buffer_vertices_data_0 : [9]GLfloat;
-  vertex_buffer_color_data_0 : [9]GLfloat;
-  vertex_buffer_vertices_data_1 : [9]GLfloat;
-  vertex_buffer_color_data_1 : [9]GLfloat;
+  // Final version - only 4 points required
+  // @improvement we will just offset second triangle
+  // and be fine about it
+  vertex_buffer_vertices_data : [12]GLfloat;
+  vertex_buffer_colors_data : [12]GLfloat;
 }
 
 create_iso_tile_buffers :: (iso_tile: *IsoTile) {
   // Create VB - vertex buffer for vertices
-  glGenBuffers(1, *iso_tile.vertex_buffer_vertices_0);
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_0);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_0)), *iso_tile.vertex_buffer_vertices_data_0, GL_STATIC_DRAW);
+  // glGenBuffers(1, *iso_tile.vertex_buffer_vertices_0);
+  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_0);
+  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_0)), *iso_tile.vertex_buffer_vertices_data_0, GL_STATIC_DRAW);
 
-  glGenBuffers(1, *iso_tile.vertex_buffer_vertices_1);
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_1);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_1)), *iso_tile.vertex_buffer_vertices_data_1, GL_STATIC_DRAW);
+  // glGenBuffers(1, *iso_tile.vertex_buffer_vertices_1);
+  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_1);
+  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_1)), *iso_tile.vertex_buffer_vertices_data_1, GL_STATIC_DRAW);
+
+  // REAL BUFFERS
+  glGenBuffers(1, *iso_tile.vertex_buffer_vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data)), *iso_tile.vertex_buffer_vertices_data, GL_STATIC_DRAW);
 
   // Create VB - vertex buffer for colors
-  glGenBuffers(1, *iso_tile.vertex_buffer_colors_0);
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_0);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_0)), *iso_tile.vertex_buffer_color_data_0, GL_STATIC_DRAW);
+  // glGenBuffers(1, *iso_tile.vertex_buffer_colors_0);
+  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_0);
+  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_0)), *iso_tile.vertex_buffer_color_data_0, GL_STATIC_DRAW);
 
-  glGenBuffers(1, *iso_tile.vertex_buffer_colors_1);
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_1);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_1)), *iso_tile.vertex_buffer_color_data_1, GL_STATIC_DRAW);
+  // glGenBuffers(1, *iso_tile.vertex_buffer_colors_1);
+  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_1);
+  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_1)), *iso_tile.vertex_buffer_color_data_1, GL_STATIC_DRAW);
 
-  print("Buffers _0 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_0, iso_tile.vertex_buffer_colors_0);
-  print("Buffers _1 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_1, iso_tile.vertex_buffer_colors_1);
+  // REAL BUFFERS
+  glGenBuffers(1, *iso_tile.vertex_buffer_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_colors_data)), *iso_tile.vertex_buffer_colors_data, GL_STATIC_DRAW);
+
+  // print("Buffers _0 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_0, iso_tile.vertex_buffer_colors_0);
+  // print("Buffers _1 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_1, iso_tile.vertex_buffer_colors_1);
+
+  print("Buffers - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices, iso_tile.vertex_buffer_colors);
 }
 
 populate_iso_tile :: (iso_tile: *IsoTile) {
-  // TODO ragnar: parametrize, rn hardcoded
+  // @TODO ragnar: parametrize, rn hardcoded
   iso_tile.id = 0;
 
   // @hardcore
-  iso_tile.nw = .{0, 0.5, 0};
-  iso_tile.ne = .{0.5, 0, 0};
-  iso_tile.se = .{0, -0.5, 0};
-  iso_tile.sw = .{-0.5, 0, 0};
+  iso_tile.nw = .{-0.5,  0.5, 0};
+  iso_tile.ne = .{ 0.5,  0.5, 0};
+  iso_tile.se = .{ 0.5, -0.5, 0};
+  iso_tile.sw = .{-0.5, -0.5, 0};
 
   // @hardcode
-  iso_tile.color_nw = .{1.0, 0, 0};
-  iso_tile.color_ne = .{0, 1.0, 0};
-  iso_tile.color_se = .{1.0, 0, 0};
-  iso_tile.color_sw = .{0, 0, 1.0};
+  iso_tile.color_nw = .{1.0,   0,   0};
+  iso_tile.color_ne = .{  0, 1.0,   0};
+  iso_tile.color_se = .{1.0,   0,   0};
+  iso_tile.color_sw = .{  0,   0, 1.0};
 
-  // Doing stuff by hand becuase why the fuck not
-  iso_tile.vertex_buffer_vertices_data_0[0] = iso_tile.nw.x;
-  iso_tile.vertex_buffer_vertices_data_0[1] = iso_tile.nw.y;
-  iso_tile.vertex_buffer_vertices_data_0[2] = iso_tile.nw.z;
+  // Putting vertices and color data in correct order
+  iso_tile.vertex_buffer_vertices_data[0]  = iso_tile.nw.x;
+  iso_tile.vertex_buffer_vertices_data[1]  = iso_tile.nw.y;
+  iso_tile.vertex_buffer_vertices_data[2]  = iso_tile.nw.z;
+  iso_tile.vertex_buffer_vertices_data[3]  = iso_tile.sw.x;
+  iso_tile.vertex_buffer_vertices_data[4]  = iso_tile.sw.y;
+  iso_tile.vertex_buffer_vertices_data[5]  = iso_tile.sw.z;
+  iso_tile.vertex_buffer_vertices_data[6]  = iso_tile.ne.x;
+  iso_tile.vertex_buffer_vertices_data[7]  = iso_tile.ne.y;
+  iso_tile.vertex_buffer_vertices_data[8]  = iso_tile.ne.z;
+  iso_tile.vertex_buffer_vertices_data[9]  = iso_tile.se.x;
+  iso_tile.vertex_buffer_vertices_data[10] = iso_tile.se.y;
+  iso_tile.vertex_buffer_vertices_data[11] = iso_tile.se.z;
 
-  iso_tile.vertex_buffer_vertices_data_0[3] = iso_tile.ne.x;
-  iso_tile.vertex_buffer_vertices_data_0[4] = iso_tile.ne.y;
-  iso_tile.vertex_buffer_vertices_data_0[5] = iso_tile.ne.z;
-
-  iso_tile.vertex_buffer_vertices_data_0[6] = iso_tile.se.x;
-  iso_tile.vertex_buffer_vertices_data_0[7] = iso_tile.se.y;
-  iso_tile.vertex_buffer_vertices_data_0[8] = iso_tile.se.z;
-
-  iso_tile.vertex_buffer_vertices_data_1[0] = iso_tile.se.x;
-  iso_tile.vertex_buffer_vertices_data_1[1] = iso_tile.se.y;
-  iso_tile.vertex_buffer_vertices_data_1[2] = iso_tile.se.z;
-
-  iso_tile.vertex_buffer_vertices_data_1[3] = iso_tile.sw.x;
-  iso_tile.vertex_buffer_vertices_data_1[4] = iso_tile.sw.y;
-  iso_tile.vertex_buffer_vertices_data_1[5] = iso_tile.sw.z;
-
-  iso_tile.vertex_buffer_vertices_data_1[6] = iso_tile.nw.x;
-  iso_tile.vertex_buffer_vertices_data_1[7] = iso_tile.nw.y;
-  iso_tile.vertex_buffer_vertices_data_1[8] = iso_tile.nw.z;
-
-
-  iso_tile.vertex_buffer_color_data_0[0] = iso_tile.color_nw.r;
-  iso_tile.vertex_buffer_color_data_0[1] = iso_tile.color_nw.g;
-  iso_tile.vertex_buffer_color_data_0[2] = iso_tile.color_nw.b;
-
-  iso_tile.vertex_buffer_color_data_0[3] = iso_tile.color_ne.r;
-  iso_tile.vertex_buffer_color_data_0[4] = iso_tile.color_ne.g;
-  iso_tile.vertex_buffer_color_data_0[5] = iso_tile.color_ne.b;
-
-  iso_tile.vertex_buffer_color_data_0[6] = iso_tile.color_se.r;
-  iso_tile.vertex_buffer_color_data_0[7] = iso_tile.color_se.g;
-  iso_tile.vertex_buffer_color_data_0[8] = iso_tile.color_se.b;
-
-  iso_tile.vertex_buffer_color_data_1[0] = iso_tile.color_se.r;
-  iso_tile.vertex_buffer_color_data_1[1] = iso_tile.color_se.g;
-  iso_tile.vertex_buffer_color_data_1[2] = iso_tile.color_se.b;
-
-  iso_tile.vertex_buffer_color_data_1[3] = iso_tile.color_sw.r;
-  iso_tile.vertex_buffer_color_data_1[4] = iso_tile.color_sw.g;
-  iso_tile.vertex_buffer_color_data_1[5] = iso_tile.color_sw.b;
-
-  iso_tile.vertex_buffer_color_data_1[6] = iso_tile.color_nw.r;
-  iso_tile.vertex_buffer_color_data_1[7] = iso_tile.color_nw.g;
-  iso_tile.vertex_buffer_color_data_1[8] = iso_tile.color_nw.b;
+  iso_tile.vertex_buffer_colors_data[0]  = iso_tile.color_nw.r;
+  iso_tile.vertex_buffer_colors_data[1]  = iso_tile.color_nw.g;
+  iso_tile.vertex_buffer_colors_data[2]  = iso_tile.color_nw.b;
+  iso_tile.vertex_buffer_colors_data[3]  = iso_tile.color_sw.r;
+  iso_tile.vertex_buffer_colors_data[4]  = iso_tile.color_sw.g;
+  iso_tile.vertex_buffer_colors_data[5]  = iso_tile.color_sw.b;
+  iso_tile.vertex_buffer_colors_data[6]  = iso_tile.color_ne.r;
+  iso_tile.vertex_buffer_colors_data[7]  = iso_tile.color_ne.g;
+  iso_tile.vertex_buffer_colors_data[8]  = iso_tile.color_ne.b;
+  iso_tile.vertex_buffer_colors_data[9]  = iso_tile.color_se.r;
+  iso_tile.vertex_buffer_colors_data[10] = iso_tile.color_se.g;
+  iso_tile.vertex_buffer_colors_data[11] = iso_tile.color_se.b;
 
   // In the end - create buffers
   create_iso_tile_buffers(iso_tile);
@@ -211,24 +202,25 @@ render_iso_tile :: (iso_tile: *IsoTile) {
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
 
-  // Binding buffers - vertices
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_0);
+  // Binding buffers - REAL vertices
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
-  // Binding buffers - colors
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_0);
+  // Binding buffers - REAL colors
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
   // Draw arrays call - first triangle
   glDrawArrays(GL_TRIANGLES, 0, 3);
 
+
   // Bind buffers - vertices - now with offset
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_1);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)(3 * size_of(GLfloat)));
 
   // Bind buffers - colors - now with offset
-  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)(3 * size_of(GLfloat)));
 
   // Draw arrays call - second triangle
   glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -272,7 +264,7 @@ load_shaders :: () -> GLuint {
   glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, *result_vertex);
   glGetShaderiv(vertex_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_vertex);
 
-  // TODO ragnar: add checking for errors
+  // @TODO ragnar: add checking for errors
   if (info_log_length_vertex > 0) {
     vertex_shader_error_log : [512]u8;
     glGetShaderInfoLog(vertex_shader_id, cast(u32)info_log_length_vertex, null, cast(*GLchar) *vertex_shader_error_log);
@@ -285,7 +277,7 @@ load_shaders :: () -> GLuint {
   glGetShaderiv(fragment_shader_id, GL_COMPILE_STATUS, *result_fragment);
   glGetShaderiv(fragment_shader_id, GL_INFO_LOG_LENGTH, *info_log_length_fragment);
 
-  // TODO ragnar: add checking for errors
+  // @TODO ragnar: add checking for errors
   if (info_log_length_fragment > 0) {
     fragment_shader_error_log : [512]u8;
     glGetShaderInfoLog(fragment_shader_id, cast(u32)info_log_length_fragment, null, cast(*GLchar) *fragment_shader_error_log);
@@ -301,7 +293,7 @@ load_shaders :: () -> GLuint {
   glGetProgramiv(program_id, GL_LINK_STATUS, *result_program);
   glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, *info_log_length_program);
 
-  // TODO ragnar: add checking for errors
+  // @TODO ragnar: add checking for errors
   if (info_log_length_program > 0) {
     program_error_log : string;
     glGetProgramInfoLog(program_id, cast(u32)info_log_length_fragment, null, to_c_string(program_error_log));
@@ -327,8 +319,8 @@ main :: () {
   if (args.count > 1) {
     for args {
       if (it_index == 0) continue;
-      // TODO ragnar: add switch for program arguments
-      // TODO ragnar: add struct for program control variables
+      // @TODO ragnar: add switch for program arguments
+      // @TODO ragnar: add struct for program control variables
       print("Additional argument: %\n", it);
     }
   }
@@ -356,6 +348,9 @@ main :: () {
   
   print("GL Vendor = %\n", to_string(glGetString(GL_VENDOR)));
   print("GL Version = %\n", to_string(glGetString(GL_VERSION)));
+  
+  // DEBUG prints
+  print("GLfloat size_of: %\n", size_of(GLfloat));
 
   // Defering stuff
   defer SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
