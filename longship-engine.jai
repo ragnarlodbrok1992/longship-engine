@@ -373,8 +373,17 @@ main :: () {
   // Getting MatrixID for MVP
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
+  // Some variables for OPM
+  opm_left := -1.0;
+  opm_right := 1.0;
+  opm_bottom := -1.0;
+  opm_top := 1.0;
+  opm_near := -10.0;
+  opm_far := 10.0;
+
   // Create orhographic projection matrix
-  op_matrix := orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, -10.0, 10.0);
+  // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
+  op_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
   print("Ortographic projection matrix: %\n", op_matrix);
 
   // Main LongshipEngine loop
@@ -388,6 +397,39 @@ main :: () {
           QUIT = true;
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
+        case SDL_KEYDOWN;
+          shift_modifier := 1;
+          print("DEBUG: event.key.keysym.mod %\n", event.key.keysym.mod);
+          if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = -1;
+          if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
+
+          print("Shift modifier: %\n", shift_modifier);
+
+          // @TODO add shift modifier
+          // when pressing key with shift we get KMOD_LSHIFT
+
+          // print("DEBUG: event.key.keysym     %\n", event.key.keysym);
+          // print("DEBUG: event.key.keysym.sym %\n", event.key.keysym.sym);
+
+          if event.key.keysym.sym == SDLK_a {
+            print("Pressing a.\n"); 
+          }
+          if event.key.keysym.sym == SDLK_w {
+            print("Pressing w.\n");
+          }
+          if event.key.keysym.sym == SDLK_s {
+            print("Pressing s.\n");
+          }
+          if event.key.keysym.sym == SDLK_d {
+            print("Pressing d.\n");
+          }
+          if event.key.keysym.sym == SDLK_q {
+            print("Pressing q.\n");
+          }
+          if event.key.keysym.sym == SDLK_e {
+            print("Pressing e.\n");
+          }
+          // @TODO ragnar: add some control to camera to see how it works
         case SDL_WINDOWEVENT;
           if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
             WINDOW_WIDTH = event.window.data1;
