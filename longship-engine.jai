@@ -1,6 +1,5 @@
 #import "Basic";
 
-// #import "Window_Creation";
 #import "Input";
 #import "Math";
 #import "SDL";
@@ -155,7 +154,7 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.id = 0;
 
   // @hardcore
-  iso_tile.nw = .{-0.5,  0.5, 0};
+  iso_tile.nw = .{-0.5,  0.5, 0.8};
   iso_tile.ne = .{ 0.5,  0.5, 0};
   iso_tile.se = .{ 0.5, -0.5, 0};
   iso_tile.sw = .{-0.5, -0.5, 0};
@@ -196,6 +195,23 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   // In the end - create buffers
   create_iso_tile_buffers(iso_tile);
 
+}
+
+modify_vertex_buffer :: (iso_tile: *IsoTile) {
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  // glBufferSubData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data)), *iso_tile.vertex_buffer_vertices_data, GL_STATIC_DRAW);
+  glBufferSubData(GL_ARRAY_BUFFER, 2 * size_of(GLfloat), size_of(GLfloat), *iso_tile.vertex_buffer_vertices_data[2]);
+  print("Buffer vertices data: %\n", iso_tile.vertex_buffer_vertices_data);
+}
+
+move_corner_up_or_down :: (iso_tile: *IsoTile, adding: GLfloat) {
+  // iso_tile.nw.z += adding;
+  iso_tile.vertex_buffer_vertices_data[2] += adding;
+
+  // Calling creating buffers
+  // create_iso_tile_buffers(iso_tile);
+  // @TODO: how to modify current buffer?
+  modify_vertex_buffer(iso_tile);
 }
 
 render_iso_tile :: (iso_tile: *IsoTile) {
@@ -381,10 +397,6 @@ main :: () {
   opm_near := -10.0;
   opm_far := 10.0;
 
-  // Create orhographic projection matrix
-  // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
-  op_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
-  print("Ortographic projection matrix: %\n", op_matrix);
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -412,24 +424,40 @@ main :: () {
           // print("DEBUG: event.key.keysym.sym %\n", event.key.keysym.sym);
 
           if event.key.keysym.sym == SDLK_a {
-            print("Pressing a.\n"); 
+            // print("Pressing a.\n"); 
+            opm_left += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_w {
-            print("Pressing w.\n");
+            // print("Pressing w.\n");
+            opm_top += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_s {
-            print("Pressing s.\n");
+            // print("Pressing s.\n");
+            opm_bottom += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_d {
-            print("Pressing d.\n");
+            // print("Pressing d.\n");
+            opm_right += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_q {
-            print("Pressing q.\n");
+            // print("Pressing q.\n");
+            opm_near += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_e {
-            print("Pressing e.\n");
+            // print("Pressing e.\n");
+            opm_far += 0.1 * shift_modifier;
           }
+          if event.key.keysym.sym == SDLK_f {
+            print("Pressing f.\n");
+            move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
+          }
+
           // @TODO ragnar: add some control to camera to see how it works
+
+          // PRINT OPM VALUES
+          print("OPM: left: %, right: %,\ntop: %, bottom %,\nnear: %, far: %\n",
+              opm_left, opm_right, opm_top, opm_bottom, opm_near, opm_far);
+
         case SDL_WINDOWEVENT;
           if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
             WINDOW_WIDTH = event.window.data1;
@@ -437,6 +465,12 @@ main :: () {
           }
       }
     }
+
+    // Create orhographic projection matrix
+    // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
+    op_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
+    // print("Ortographic projection matrix: %\n", op_matrix);
+
     // Rendering shit
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
 
