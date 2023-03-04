@@ -44,8 +44,8 @@ WINDOW_HEIGHT : s32 = 768;
 // @TODO ragnar: create a grid of isotiles
 ISO_TILESET_WIDTH := 1000;
 ISO_TILESET_HEIGHT := 1000;
-ISO_TILE_WIDTH := 20;
-ISO_TILE_HEIGHT := 20;
+ISO_TILE_WIDTH := 200;
+ISO_TILE_HEIGHT := 200;
 ISO_TILESET_X := 0;
 ISO_TILESET_Y := 0;
 
@@ -154,10 +154,15 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.id = 0;
 
   // @hardcore
-  iso_tile.nw = .{-0.5,  0.5, 0.8};
-  iso_tile.ne = .{ 0.5,  0.5, 0};
-  iso_tile.se = .{ 0.5, -0.5, 0};
-  iso_tile.sw = .{-0.5, -0.5, 0};
+  iso_tile.nw = .{cast(float) -ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
+  iso_tile.ne = .{cast(float)  ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
+  iso_tile.se = .{cast(float)  ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
+  iso_tile.sw = .{cast(float) -ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
+
+  // iso_tile.nw = .{0, 0, 0};
+  // iso_tile.ne = .{100, 0, 0};
+  // iso_tile.se = .{100, 100, 0};
+  // iso_tile.sw = .{0, 100, 0};
 
   // @hardcode
   iso_tile.color_nw = .{1.0,   0,   0};
@@ -390,13 +395,30 @@ main :: () {
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
   // Some variables for OPM
-  opm_left := -1.0;
-  opm_right := 1.0;
-  opm_bottom := -1.0;
-  opm_top := 1.0;
-  opm_near := -10.0;
-  opm_far := 10.0;
+  opm_left   := cast(float) -(WINDOW_WIDTH / 2);
+  opm_right  := cast(float)  WINDOW_WIDTH / 2;
+  opm_bottom := cast(float)  WINDOW_HEIGHT / 2;
+  opm_top    := cast(float) -(WINDOW_HEIGHT / 2);
+  opm_near   := 0.0;
+  opm_far    := 10000.0;
 
+  // Variables for view matrix
+  // viewpoint : Vector3 = .{10.0, 10.0, 10.0};
+  // look_at : Vector3 = .{0.0, 0.0, 0.0};
+  reference_up_vector : Vector3 = .{0.0, 1.0, 0.0};
+
+  // DEBUG
+  viewpoint_x := 0.0;
+  viewpoint_y := 0.0;
+  viewpoint_z := 0.0;
+
+  look_at_x := 0.0;
+  look_at_y := 0.0;
+  look_at_z := 0.0;
+
+  translate_x := 0.0;
+  translate_y := 0.0;
+  translate_z := 0.0;
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -425,20 +447,29 @@ main :: () {
 
           if event.key.keysym.sym == SDLK_a {
             // print("Pressing a.\n"); 
-            opm_left += 0.1 * shift_modifier;
+            // viewpoint_x += 0.01 * shift_modifier;
+            // look_at_x += 0.01 * shift_modifier;
+            translate_x += 0.1 * shift_modifier;
           }
+          /*
           if event.key.keysym.sym == SDLK_w {
             // print("Pressing w.\n");
             opm_top += 0.1 * shift_modifier;
           }
+          */
           if event.key.keysym.sym == SDLK_s {
             // print("Pressing s.\n");
-            opm_bottom += 0.1 * shift_modifier;
+            // viewpoint_y += 0.01 * shift_modifier;
+            // look_at_y += 0.01 * shift_modifier;
+            translate_y += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_d {
             // print("Pressing d.\n");
-            opm_right += 0.1 * shift_modifier;
+            // viewpoint_z += 0.01 * shift_modifier;
+            // look_at_z += 0.01 * shift_modifier;
+            translate_z += 0.1 * shift_modifier;
           }
+          /*
           if event.key.keysym.sym == SDLK_q {
             // print("Pressing q.\n");
             opm_near += 0.1 * shift_modifier;
@@ -451,12 +482,17 @@ main :: () {
             print("Pressing f.\n");
             move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
           }
+          */
 
           // @TODO ragnar: add some control to camera to see how it works
 
           // PRINT OPM VALUES
-          print("OPM: left: %, right: %,\ntop: %, bottom %,\nnear: %, far: %\n",
-              opm_left, opm_right, opm_top, opm_bottom, opm_near, opm_far);
+          // print("OPM: left: %, right: %,\ntop: %, bottom %,\nnear: %, far: %\n",
+          //    opm_left, opm_right, opm_top, opm_bottom, opm_near, opm_far);
+
+          print("Viewpoint: x %, y %, z %\n", viewpoint_x, viewpoint_y, viewpoint_z);
+          print("Look_at: x %, y %, z %\n", look_at_x, look_at_y, look_at_z);
+          print("Translate: x %, y %, z %\n", translate_x, translate_y, translate_z);
 
         case SDL_WINDOWEVENT;
           if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
@@ -468,7 +504,36 @@ main :: () {
 
     // Create orhographic projection matrix
     // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
-    op_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
+
+    // @IDEA go for MVP matrix that is pushed into UniformMatrix4fv
+    // but lets try this orthographic_projection_matrix
+
+    // DEBUG changing viewpoint by hand
+    viewpoint : Vector3 = .{viewpoint_x, viewpoint_y, viewpoint_z};
+    look_at : Vector3 = .{look_at_x, look_at_y, look_at_z};
+
+    // @DEBUG lets play with something different than ortographics projection
+    // fov_vertical := 0.785398;
+    // op_projection_matrix := make_projection_matrix(fov_vertical, (cast(float) WINDOW_WIDTH / cast(float) WINDOW_HEIGHT), 0.1, 100.0);
+    op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
+
+    // @NOTE 1 - viewpoint, 2 - look_at, 3 - reference_up_vector 
+    // @NOTE leaving this as-is - we only want to move iso tiles
+    op_view_matrix := make_look_at_matrix(viewpoint, look_at, reference_up_vector, false); // x_is_foward set to false
+    // @NOTE: idk what is forward
+    // MODEL mat4 idendity matrix
+    op_model_matrix := Matrix4_Identity;
+    op_model_matrix._14 = translate_x;
+    op_model_matrix._24 = translate_y;
+    op_model_matrix._34 = translate_z;
+    print("OP model matrix: %\n", op_model_matrix);
+
+    // @TODO build translation, rotation and scale matrices
+    
+
+    // print("Op model matrix %\n", op_model_matrix);
+    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
+    
     // print("Ortographic projection matrix: %\n", op_matrix);
 
     // Rendering shit
@@ -478,7 +543,7 @@ main :: () {
     glUseProgram(program_id);
 
     // Set up camera
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *op_matrix);
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
 
     // End of checking input events
     glClear(GL_COLOR_BUFFER_BIT);
