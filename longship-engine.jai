@@ -424,14 +424,6 @@ main :: () {
   // Getting MatrixID for MVP
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
-  // Some variables for OPM
-  // opm_left   := cast(float) -(WINDOW_WIDTH / 2);
-  // opm_right  := cast(float)  (WINDOW_WIDTH / 2);
-  // opm_bottom := cast(float)  (WINDOW_HEIGHT / 2);
-  // opm_top    := cast(float) -(WINDOW_HEIGHT / 2);
-  // opm_near   := 0.0;
-  // opm_far    := 10000.0;
-
   // @NOTE checking out if projection is correct
   opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
   opm_right  := cast(float)  (WINDOW_WIDTH  / 2);
@@ -445,7 +437,6 @@ main :: () {
   // look_at : Vector3 = .{0.0, 0.0, 0.0};
 
   // DEBUG
-
   translate_x := 0.0;
   translate_y := 0.0;
   translate_z := 0.0;
@@ -453,17 +444,17 @@ main :: () {
   // I'm not sure how this reference is working...
   // Forward - look_at - viewpoint => -z
   // @NOTE - our point of view is just calculated by look_at - viewpoint
-  viewpoint_x := 10.0;
-  viewpoint_y := 10.0;
-  viewpoint_z := -10.0;
+  viewpoint_x := 0.0;
+  viewpoint_y := 0.0;
+  viewpoint_z := 10.0;
 
   look_at_x := 0.0;
   look_at_y := 0.0;
   look_at_z := 0.0;
 
   ref_up_x := 0.0;
-  ref_up_y := 0.0;
-  ref_up_z := 1.0;
+  ref_up_y := 1.0;
+  ref_up_z := 0.0;
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -580,11 +571,12 @@ main :: () {
     op_model_matrix._41 = translate_x;
     op_model_matrix._42 = translate_y;
     op_model_matrix._43 = translate_z;
+    // print("op_model_matrix: %\n", op_model_matrix);
     // print("OP model matrix: %\n", op_model_matrix);
 
     // @TODO build translation, rotation and scale matrices
-    // mvp_matriv := op_projection_matrix * op_model_matrix * op_view_matrix;
-    mvp_matrix := op_projection_matrix * op_model_matrix;
+    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix ;
+    // mvp_matrix := op_projection_matrix * op_model_matrix;
     
     // print("Ortographic projection matrix: %\n", op_matrix);
 
