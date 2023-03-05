@@ -44,8 +44,8 @@ WINDOW_HEIGHT : s32 = 768;
 // @TODO ragnar: create a grid of isotiles
 ISO_TILESET_WIDTH := 1000;
 ISO_TILESET_HEIGHT := 1000;
-ISO_TILE_WIDTH := 200;
-ISO_TILE_HEIGHT := 200;
+ISO_TILE_WIDTH := 100;
+ISO_TILE_HEIGHT := 100;
 ISO_TILESET_X := 0;
 ISO_TILESET_Y := 0;
 
@@ -155,7 +155,7 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   // @hardcode
   iso_tile.color_nw = .{1.0,   0,   0};
   iso_tile.color_ne = .{  0, 1.0,   0};
-  iso_tile.color_se = .{1.0,   0,   0};
+  iso_tile.color_se = .{1.0, 1.0,   0};
   iso_tile.color_sw = .{  0,   0, 1.0};
 
   // Putting vertices and color data in correct order
@@ -430,12 +430,11 @@ main :: () {
   // Variables for view matrix
   // viewpoint : Vector3 = .{10.0, 10.0, 10.0};
   // look_at : Vector3 = .{0.0, 0.0, 0.0};
-  reference_up_vector : Vector3 = .{0.0, 1.0, 0.0};
 
   // DEBUG
-  viewpoint_x := 0.0;
-  viewpoint_y := 0.0;
-  viewpoint_z := 0.0;
+  viewpoint_x := -10.0;
+  viewpoint_y := -10.0;
+  viewpoint_z := 10.0;
 
   look_at_x := 0.0;
   look_at_y := 0.0;
@@ -444,6 +443,11 @@ main :: () {
   translate_x := 0.0;
   translate_y := 0.0;
   translate_z := 0.0;
+
+  // I'm not sure how this reference is working...
+  ref_up_x := 0.0;
+  ref_up_y := 0.0;
+  ref_up_z := 1.0;
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -457,12 +461,12 @@ main :: () {
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
         case SDL_KEYDOWN;
-          shift_modifier := -1;
-          print("DEBUG: event.key.keysym.mod %\n", event.key.keysym.mod);
-          if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = 1;
-          if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = 1;
+          shift_modifier := 1;
+          // print("DEBUG: event.key.keysym.mod %\n", event.key.keysym.mod);
+          if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = -1;
+          if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
 
-          print("Shift modifier: %\n", shift_modifier);
+          // print("Shift modifier: %\n", shift_modifier);
 
           // @TODO add shift modifier
           // when pressing key with shift we get KMOD_LSHIFT
@@ -470,45 +474,51 @@ main :: () {
           // print("DEBUG: event.key.keysym     %\n", event.key.keysym);
           // print("DEBUG: event.key.keysym.sym %\n", event.key.keysym.sym);
 
-          /*
           if event.key.keysym.sym == SDLK_a {
             // print("Pressing a.\n"); 
             // viewpoint_x += 0.01 * shift_modifier;
             // look_at_x += 0.01 * shift_modifier;
-            translate_x += 0.1 * shift_modifier;
+            translate_x += 0.01 * shift_modifier;
+            print("Translating x!\n");
+            // ref_up_x += 0.01 * shift_modifier;
+          }
+          if event.key.keysym.sym == SDLK_s {
+            // print("Pressing s.\n");
+            // viewpoint_y += 0.01 * shift_modifier;
+            // look_at_y += 0.01 * shift_modifier;
+            translate_y += 0.01 * shift_modifier;
+            print("Translating y!\n");
+            // ref_up_y += 0.01 * shift_modifier;
+          }
+          if event.key.keysym.sym == SDLK_d {
+            // print("Pressing d.\n");
+            // viewpoint_z += 0.01 * shift_modifier;
+            // look_at_z += 0.01 * shift_modifier;
+            translate_z += 0.01 * shift_modifier;
+            print("Translating z!\n");
+            // ref_up_z += 0.01 * shift_modifier;
+          }
+          /*
+          if event.key.keysym.sym == SDLK_q {
+            // print("Pressing q.\n");
+            // opm_near += 0.1 * shift_modifier;
+            look_at_x += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_w {
             // print("Pressing w.\n");
             // opm_top += 0.1 * shift_modifier;
             look_at_y += 0.1 * shift_modifier;
           }
-          if event.key.keysym.sym == SDLK_s {
-            // print("Pressing s.\n");
-            // viewpoint_y += 0.01 * shift_modifier;
-            // look_at_y += 0.01 * shift_modifier;
-            translate_y += 0.1 * shift_modifier;
-          }
-          if event.key.keysym.sym == SDLK_d {
-            // print("Pressing d.\n");
-            // viewpoint_z += 0.01 * shift_modifier;
-            // look_at_z += 0.01 * shift_modifier;
-            translate_z += 0.1 * shift_modifier;
-          }
-          if event.key.keysym.sym == SDLK_q {
-            // print("Pressing q.\n");
-            // opm_near += 0.1 * shift_modifier;
-            look_at_x += 0.1 * shift_modifier;
-          }
           if event.key.keysym.sym == SDLK_e {
             // print("Pressing e.\n");
             // opm_far += 0.1 * shift_modifier;
             look_at_z += 0.1 * shift_modifier;
           }
+          */
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
             // move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
           }
-          */
 
           // @TODO ragnar: add some control to camera to see how it works
 
@@ -537,6 +547,7 @@ main :: () {
     // DEBUG changing viewpoint by hand
     viewpoint : Vector3 = .{viewpoint_x, viewpoint_y, viewpoint_z};
     look_at : Vector3 = .{look_at_x, look_at_y, look_at_z};
+    reference_up_vector : Vector3 = .{ref_up_x, ref_up_y, ref_up_z}; // Create a good up vector for isomorphic projection
 
     // @DEBUG lets play with something different than ortographics projection
     // fov_vertical := 0.785398;
