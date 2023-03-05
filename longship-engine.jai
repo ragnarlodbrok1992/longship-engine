@@ -432,10 +432,10 @@ main :: () {
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
         case SDL_KEYDOWN;
-          shift_modifier := 1;
+          shift_modifier := -1;
           print("DEBUG: event.key.keysym.mod %\n", event.key.keysym.mod);
-          if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = -1;
-          if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
+          if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = 1;
+          if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = 1;
 
           print("Shift modifier: %\n", shift_modifier);
 
@@ -451,12 +451,11 @@ main :: () {
             // look_at_x += 0.01 * shift_modifier;
             translate_x += 0.1 * shift_modifier;
           }
-          /*
           if event.key.keysym.sym == SDLK_w {
             // print("Pressing w.\n");
-            opm_top += 0.1 * shift_modifier;
+            // opm_top += 0.1 * shift_modifier;
+            look_at_y += 0.1 * shift_modifier;
           }
-          */
           if event.key.keysym.sym == SDLK_s {
             // print("Pressing s.\n");
             // viewpoint_y += 0.01 * shift_modifier;
@@ -469,20 +468,20 @@ main :: () {
             // look_at_z += 0.01 * shift_modifier;
             translate_z += 0.1 * shift_modifier;
           }
-          /*
           if event.key.keysym.sym == SDLK_q {
             // print("Pressing q.\n");
-            opm_near += 0.1 * shift_modifier;
+            // opm_near += 0.1 * shift_modifier;
+            look_at_x += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_e {
             // print("Pressing e.\n");
-            opm_far += 0.1 * shift_modifier;
+            // opm_far += 0.1 * shift_modifier;
+            look_at_z += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
-            move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
+            // move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
           }
-          */
 
           // @TODO ragnar: add some control to camera to see how it works
 
@@ -523,16 +522,20 @@ main :: () {
     // @NOTE: idk what is forward
     // MODEL mat4 idendity matrix
     op_model_matrix := Matrix4_Identity;
-    op_model_matrix._14 = translate_x;
-    op_model_matrix._24 = translate_y;
-    op_model_matrix._34 = translate_z;
-    print("OP model matrix: %\n", op_model_matrix);
+    op_model_matrix._41 = translate_x;
+    op_model_matrix._42 = translate_y;
+    op_model_matrix._43 = translate_z;
+    // print("OP model matrix: %\n", op_model_matrix);
 
     // @TODO build translation, rotation and scale matrices
     
 
     // print("Op model matrix %\n", op_model_matrix);
-    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
+    // mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
+    mvp_matrix := op_projection_matrix * op_model_matrix * op_view_matrix;
+    // mvp_matrix := op_model_matrix * op_view_matrix * op_projection_matrix;
+    // mvp_matrix := op_model_matrix * op_projection_matrix;
+    // mvp_matrix := op_projection_matrix * op_model_matrix;
     
     // print("Ortographic projection matrix: %\n", op_matrix);
 
