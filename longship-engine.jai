@@ -146,16 +146,21 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   // @TODO ragnar: parametrize, rn hardcoded
   iso_tile.id = 0;
 
-  // @hardcore
+  // @hardcore - vertices
   iso_tile.nw = .{cast(float) -ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
   iso_tile.ne = .{cast(float)  ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
   iso_tile.se = .{cast(float)  ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
   iso_tile.sw = .{cast(float) -ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
 
-  // @hardcode
+  print("iso tile nw: %\n", iso_tile.nw);
+  print("iso tile ne: %\n", iso_tile.ne);
+  print("iso tile se: %\n", iso_tile.se);
+  print("iso tile sw: %\n", iso_tile.sw);
+
+  // @hardcode - colors
   iso_tile.color_nw = .{1.0,   0,   0};
   iso_tile.color_ne = .{  0, 1.0,   0};
-  iso_tile.color_se = .{1.0, 1.0,   0};
+  iso_tile.color_se = .{1.0, 1.0, 1.0};
   iso_tile.color_sw = .{  0,   0, 1.0};
 
   // Putting vertices and color data in correct order
@@ -420,10 +425,18 @@ main :: () {
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
   // Some variables for OPM
-  opm_left   := cast(float) -(WINDOW_WIDTH / 2);
-  opm_right  := cast(float)  WINDOW_WIDTH / 2;
-  opm_bottom := cast(float)  WINDOW_HEIGHT / 2;
-  opm_top    := cast(float) -(WINDOW_HEIGHT / 2);
+  // opm_left   := cast(float) -(WINDOW_WIDTH / 2);
+  // opm_right  := cast(float)  (WINDOW_WIDTH / 2);
+  // opm_bottom := cast(float)  (WINDOW_HEIGHT / 2);
+  // opm_top    := cast(float) -(WINDOW_HEIGHT / 2);
+  // opm_near   := 0.0;
+  // opm_far    := 10000.0;
+
+  // @NOTE checking out if projection is correct
+  opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
+  opm_right  := cast(float)  (WINDOW_WIDTH  / 2);
+  opm_bottom := cast(float) -(WINDOW_HEIGHT / 2);
+  opm_top    := cast(float)  (WINDOW_HEIGHT / 2);
   opm_near   := 0.0;
   opm_far    := 10000.0;
 
@@ -432,13 +445,6 @@ main :: () {
   // look_at : Vector3 = .{0.0, 0.0, 0.0};
 
   // DEBUG
-  viewpoint_x := 1.0;
-  viewpoint_y := 1.0;
-  viewpoint_z := -1.0;
-
-  look_at_x := 0.0;
-  look_at_y := 0.0;
-  look_at_z := 0.0;
 
   translate_x := 0.0;
   translate_y := 0.0;
@@ -447,6 +453,14 @@ main :: () {
   // I'm not sure how this reference is working...
   // Forward - look_at - viewpoint => -z
   // @NOTE - our point of view is just calculated by look_at - viewpoint
+  viewpoint_x := 10.0;
+  viewpoint_y := 10.0;
+  viewpoint_z := -10.0;
+
+  look_at_x := 0.0;
+  look_at_y := 0.0;
+  look_at_z := 0.0;
+
   ref_up_x := 0.0;
   ref_up_y := 0.0;
   ref_up_z := 1.0;
@@ -569,7 +583,8 @@ main :: () {
     // print("OP model matrix: %\n", op_model_matrix);
 
     // @TODO build translation, rotation and scale matrices
-    mvp_matrix := op_projection_matrix * op_model_matrix * op_view_matrix;
+    // mvp_matriv := op_projection_matrix * op_model_matrix * op_view_matrix;
+    mvp_matrix := op_projection_matrix * op_model_matrix;
     
     // print("Ortographic projection matrix: %\n", op_matrix);
 
