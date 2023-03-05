@@ -104,49 +104,42 @@ IsoTile :: struct {
   // @improvement we will just offset second triangle
   // and be fine about it
   vertex_buffer_vertices : GLuint;
-  vertex_buffer_colors : GLuint;
+  vertex_buffer_colors   : GLuint;
+  line_buffer_vertices   : GLuint;
+  line_buffer_colors     : GLuint;
 
   // OpenGL Buffers - containers
   // Final version - only 4 points required
   // @improvement we will just offset second triangle
   // and be fine about it
   vertex_buffer_vertices_data : [12]GLfloat;
-  vertex_buffer_colors_data : [12]GLfloat;
+  vertex_buffer_colors_data   : [12]GLfloat;
+  line_buffer_colors_data     : [12]GLfloat;
+  line_buffer_vertices_data   : [12]GLfloat;
 }
 
 create_iso_tile_buffers :: (iso_tile: *IsoTile) {
-  // Create VB - vertex buffer for vertices
-  // glGenBuffers(1, *iso_tile.vertex_buffer_vertices_0);
-  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_0);
-  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_0)), *iso_tile.vertex_buffer_vertices_data_0, GL_STATIC_DRAW);
-
-  // glGenBuffers(1, *iso_tile.vertex_buffer_vertices_1);
-  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices_1);
-  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data_1)), *iso_tile.vertex_buffer_vertices_data_1, GL_STATIC_DRAW);
-
   // REAL BUFFERS
   glGenBuffers(1, *iso_tile.vertex_buffer_vertices);
   glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data)), *iso_tile.vertex_buffer_vertices_data, GL_STATIC_DRAW);
-
-  // Create VB - vertex buffer for colors
-  // glGenBuffers(1, *iso_tile.vertex_buffer_colors_0);
-  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_0);
-  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_0)), *iso_tile.vertex_buffer_color_data_0, GL_STATIC_DRAW);
-
-  // glGenBuffers(1, *iso_tile.vertex_buffer_colors_1);
-  // glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors_1);
-  // glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_color_data_1)), *iso_tile.vertex_buffer_color_data_1, GL_STATIC_DRAW);
 
   // REAL BUFFERS
   glGenBuffers(1, *iso_tile.vertex_buffer_colors);
   glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_colors_data)), *iso_tile.vertex_buffer_colors_data, GL_STATIC_DRAW);
 
-  // print("Buffers _0 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_0, iso_tile.vertex_buffer_colors_0);
-  // print("Buffers _1 - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices_1, iso_tile.vertex_buffer_colors_1);
+  // Line buffer - vertices
+  glGenBuffers(1, *iso_tile.line_buffer_vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_vertices);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.line_buffer_vertices_data)), *iso_tile.line_buffer_vertices_data, GL_STATIC_DRAW);
 
-  print("Buffers - vertices: %, colors: %\n", iso_tile.vertex_buffer_vertices, iso_tile.vertex_buffer_colors);
+  // Line buffers - colors
+  glGenBuffers(1, *iso_tile.line_buffer_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.line_buffer_colors_data)), *iso_tile.line_buffer_colors_data, GL_STATIC_DRAW);
+
+  print("Buffers - vertices: %, colors: %, line colors: %\n", iso_tile.vertex_buffer_vertices, iso_tile.vertex_buffer_colors, iso_tile.line_buffer_colors);
 }
 
 populate_iso_tile :: (iso_tile: *IsoTile) {
@@ -158,11 +151,6 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.ne = .{cast(float)  ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
   iso_tile.se = .{cast(float)  ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
   iso_tile.sw = .{cast(float) -ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
-
-  // iso_tile.nw = .{0, 0, 0};
-  // iso_tile.ne = .{100, 0, 0};
-  // iso_tile.se = .{100, 100, 0};
-  // iso_tile.sw = .{0, 100, 0};
 
   // @hardcode
   iso_tile.color_nw = .{1.0,   0,   0};
@@ -196,6 +184,34 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.vertex_buffer_colors_data[9]  = iso_tile.color_se.r;
   iso_tile.vertex_buffer_colors_data[10] = iso_tile.color_se.g;
   iso_tile.vertex_buffer_colors_data[11] = iso_tile.color_se.b;
+
+  // Line vertices
+  iso_tile.line_buffer_vertices_data[0]  = iso_tile.nw.x;
+  iso_tile.line_buffer_vertices_data[1]  = iso_tile.nw.y;
+  iso_tile.line_buffer_vertices_data[2]  = iso_tile.nw.z;
+  iso_tile.line_buffer_vertices_data[3]  = iso_tile.ne.x;
+  iso_tile.line_buffer_vertices_data[4]  = iso_tile.ne.y;
+  iso_tile.line_buffer_vertices_data[5]  = iso_tile.ne.z;
+  iso_tile.line_buffer_vertices_data[6]  = iso_tile.se.x;
+  iso_tile.line_buffer_vertices_data[7]  = iso_tile.se.y;
+  iso_tile.line_buffer_vertices_data[8]  = iso_tile.se.z;
+  iso_tile.line_buffer_vertices_data[9]  = iso_tile.sw.x;
+  iso_tile.line_buffer_vertices_data[10] = iso_tile.sw.y;
+  iso_tile.line_buffer_vertices_data[11] = iso_tile.sw.z;
+
+  // Line colors
+  iso_tile.line_buffer_colors_data[0]  = 1.0;
+  iso_tile.line_buffer_colors_data[1]  = 1.0;
+  iso_tile.line_buffer_colors_data[2]  = 1.0;
+  iso_tile.line_buffer_colors_data[3]  = 1.0;
+  iso_tile.line_buffer_colors_data[4]  = 1.0;
+  iso_tile.line_buffer_colors_data[5]  = 1.0;
+  iso_tile.line_buffer_colors_data[6]  = 1.0;
+  iso_tile.line_buffer_colors_data[7]  = 1.0;
+  iso_tile.line_buffer_colors_data[8]  = 1.0;
+  iso_tile.line_buffer_colors_data[9]  = 1.0;
+  iso_tile.line_buffer_colors_data[10] = 1.0;
+  iso_tile.line_buffer_colors_data[11] = 1.0;
 
   // In the end - create buffers
   create_iso_tile_buffers(iso_tile);
@@ -246,6 +262,15 @@ render_iso_tile :: (iso_tile: *IsoTile) {
 
   // Draw arrays call - second triangle
   glDrawArrays(GL_TRIANGLES, 0, 3);
+  
+  // Draw lines - different primitive
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_vertices);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_LINE_LOOP, 0, 4);
 
   // Disabling attrib arrays
   glDisableVertexAttribArray(0);
@@ -445,6 +470,7 @@ main :: () {
           // print("DEBUG: event.key.keysym     %\n", event.key.keysym);
           // print("DEBUG: event.key.keysym.sym %\n", event.key.keysym.sym);
 
+          /*
           if event.key.keysym.sym == SDLK_a {
             // print("Pressing a.\n"); 
             // viewpoint_x += 0.01 * shift_modifier;
@@ -482,6 +508,7 @@ main :: () {
             print("Pressing f.\n");
             // move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
           }
+          */
 
           // @TODO ragnar: add some control to camera to see how it works
 
@@ -489,9 +516,9 @@ main :: () {
           // print("OPM: left: %, right: %,\ntop: %, bottom %,\nnear: %, far: %\n",
           //    opm_left, opm_right, opm_top, opm_bottom, opm_near, opm_far);
 
-          print("Viewpoint: x %, y %, z %\n", viewpoint_x, viewpoint_y, viewpoint_z);
-          print("Look_at: x %, y %, z %\n", look_at_x, look_at_y, look_at_z);
-          print("Translate: x %, y %, z %\n", translate_x, translate_y, translate_z);
+          // print("Viewpoint: x %, y %, z %\n", viewpoint_x, viewpoint_y, viewpoint_z);
+          // print("Look_at: x %, y %, z %\n", look_at_x, look_at_y, look_at_z);
+          // print("Translate: x %, y %, z %\n", translate_x, translate_y, translate_z);
 
         case SDL_WINDOWEVENT;
           if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
@@ -528,14 +555,7 @@ main :: () {
     // print("OP model matrix: %\n", op_model_matrix);
 
     // @TODO build translation, rotation and scale matrices
-    
-
-    // print("Op model matrix %\n", op_model_matrix);
-    // mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
     mvp_matrix := op_projection_matrix * op_model_matrix * op_view_matrix;
-    // mvp_matrix := op_model_matrix * op_view_matrix * op_projection_matrix;
-    // mvp_matrix := op_model_matrix * op_projection_matrix;
-    // mvp_matrix := op_projection_matrix * op_model_matrix;
     
     // print("Ortographic projection matrix: %\n", op_matrix);
 
