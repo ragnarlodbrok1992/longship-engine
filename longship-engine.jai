@@ -432,9 +432,9 @@ main :: () {
   // look_at : Vector3 = .{0.0, 0.0, 0.0};
 
   // DEBUG
-  viewpoint_x := -10.0;
-  viewpoint_y := -10.0;
-  viewpoint_z := 10.0;
+  viewpoint_x := 1.0;
+  viewpoint_y := 1.0;
+  viewpoint_z := -1.0;
 
   look_at_x := 0.0;
   look_at_y := 0.0;
@@ -445,6 +445,8 @@ main :: () {
   translate_z := 0.0;
 
   // I'm not sure how this reference is working...
+  // Forward - look_at - viewpoint => -z
+  // @NOTE - our point of view is just calculated by look_at - viewpoint
   ref_up_x := 0.0;
   ref_up_y := 0.0;
   ref_up_z := 1.0;
@@ -557,6 +559,7 @@ main :: () {
     // @NOTE 1 - viewpoint, 2 - look_at, 3 - reference_up_vector 
     // @NOTE leaving this as-is - we only want to move iso tiles
     op_view_matrix := make_look_at_matrix(viewpoint, look_at, reference_up_vector, false); // x_is_foward set to false
+    // print("Op view matrix: %\n", op_view_matrix);
     // @NOTE: idk what is forward
     // MODEL mat4 idendity matrix
     op_model_matrix := Matrix4_Identity;
