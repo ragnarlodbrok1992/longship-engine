@@ -444,17 +444,21 @@ main :: () {
   // I'm not sure how this reference is working...
   // Forward - look_at - viewpoint => -z
   // @NOTE - our point of view is just calculated by look_at - viewpoint
-  viewpoint_x := 0.0;
-  viewpoint_y := 0.0;
-  viewpoint_z := 10.0;
+  // viewpoint_x := -0.7853;
+  // viewpoint_y := -0.7853;
+  // viewpoint_z :=  1.237;
+
+  // viewpoint_x := 0.0; 
+  // viewpoint_y := 0.0;
+  // viewpoint_z := 1.0;
 
   look_at_x := 0.0;
   look_at_y := 0.0;
   look_at_z := 0.0;
 
   ref_up_x := 0.0;
-  ref_up_y := 1.0;
-  ref_up_z := 0.0;
+  ref_up_y := 0.0;
+  ref_up_z := 1.0;
 
   // Main LongshipEngine loop
   while !QUIT {
@@ -503,6 +507,7 @@ main :: () {
             // look_at_z += 0.01 * shift_modifier;
             translate_z += 0.01 * shift_modifier;
             print("Translating z!\n");
+            // print("Changing viewpoint_z: %\n", viewpoint_z);
             // ref_up_z += 0.01 * shift_modifier;
           }
           /*
@@ -548,11 +553,12 @@ main :: () {
     // Create orhographic projection matrix
     // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
 
-    // @IDEA go for MVP matrix that is pushed into UniformMatrix4fv
-    // but lets try this orthographic_projection_matrix
-
     // DEBUG changing viewpoint by hand
-    viewpoint : Vector3 = .{viewpoint_x, viewpoint_y, viewpoint_z};
+    // viewpoint : Vector3 = .{viewpoint_x, viewpoint_y, viewpoint_z};
+
+    viewpoint : Vector3 = .{-10.0, -10.0, 10.0};
+    
+
     look_at : Vector3 = .{look_at_x, look_at_y, look_at_z};
     reference_up_vector : Vector3 = .{ref_up_x, ref_up_y, ref_up_z}; // Create a good up vector for isomorphic projection
 
@@ -571,11 +577,19 @@ main :: () {
     op_model_matrix._41 = translate_x;
     op_model_matrix._42 = translate_y;
     op_model_matrix._43 = translate_z;
-    // print("op_model_matrix: %\n", op_model_matrix);
-    // print("OP model matrix: %\n", op_model_matrix);
+
+    // @NOTE Add some rotation?
+    // @TODO create a quaternion
+    _degrees := 45 * (PI / 180);
+    x_rotate_counterclockwise : Quaternion = .{-sin(_degrees / 2), 0, 0, 1};
+    y_rotate_counterclockwise : Quaternion = .{0, -sin(_degrees / 2), 0, 1};
+    z_rotate_counterclockwise : Quaternion = .{0, 0, -sin(_degrees / 2), 1};
+    op_model_matrix = rotate(op_model_matrix, z_rotate_counterclockwise);
+
+    // op_model_matrix = cast,force(Vector4) z_rotate_45_degrees_counterclockwise * op_model_matrix;
 
     // @TODO build translation, rotation and scale matrices
-    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix ;
+    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
     // mvp_matrix := op_projection_matrix * op_model_matrix;
     
     // print("Ortographic projection matrix: %\n", op_matrix);
