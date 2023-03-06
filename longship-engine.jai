@@ -49,6 +49,9 @@ ISO_TILE_HEIGHT := 100;
 ISO_TILESET_X := 0;
 ISO_TILESET_Y := 0;
 
+// @DEBUG
+DEGREES := 0;
+
 // Define structs
 Color :: struct {
   r: u8;
@@ -82,6 +85,23 @@ OGLPoint :: struct {
   x: GLfloat;
   y: GLfloat;
   z: GLfloat; // Sticking to one plane for now
+}
+
+// @NOTE stolen code from skeletal-animation (or inspiration, whatever)
+Camera :: struct {
+  FLY_SPEED :: 1.0;
+  ROTATION_SPEED :: 0.3;
+  ROTATION_SMOOTHING :: 0.3;
+
+  position : Vector3;
+  euler_angles : Vector3;
+  rotation : Quaternion;
+  rotation_input : Vector2; // I think yaw and pitch - we do not roll here
+  fov := 45.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+  transform := Matrix4_Identity;
+  view_matrix := Matrix4_Identity;
+  projection_matrix := Matrix4_Identity;
+  view_projection_matrix := Matrix4_Identity;
 }
   
 IsoTile :: struct {
@@ -366,6 +386,10 @@ main :: () {
   // Welcoming messages
   print("Hello, longship-engine!\n");
 
+  // @TODO (6-3-2023) Just steal (learn and use here) some code from skeletal animation example program
+  // especially transforms and cameras
+  // since OpenGL is just AAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHH
+
   // Getting command line arguments
   args := get_command_line_arguments();
   if (args.count > 1) {
@@ -460,8 +484,15 @@ main :: () {
   ref_up_y := 0.0;
   ref_up_z := 1.0;
 
+  // Time variables
+  delta_time := 0.01667;
+
   // Main LongshipEngine loop
+
   while !QUIT {
+    // @TODO adding frame delta time
+    frame_start := current_time_monotonic();
+
     // Check input events
 
     event : SDL_Event;
@@ -473,17 +504,9 @@ main :: () {
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
         case SDL_KEYDOWN;
           shift_modifier := 1;
-          // print("DEBUG: event.key.keysym.mod %\n", event.key.keysym.mod);
+
           if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = -1;
           if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
-
-          // print("Shift modifier: %\n", shift_modifier);
-
-          // @TODO add shift modifier
-          // when pressing key with shift we get KMOD_LSHIFT
-
-          // print("DEBUG: event.key.keysym     %\n", event.key.keysym);
-          // print("DEBUG: event.key.keysym.sym %\n", event.key.keysym.sym);
 
           if event.key.keysym.sym == SDLK_a {
             // print("Pressing a.\n"); 
@@ -510,23 +533,25 @@ main :: () {
             // print("Changing viewpoint_z: %\n", viewpoint_z);
             // ref_up_z += 0.01 * shift_modifier;
           }
-          /*
           if event.key.keysym.sym == SDLK_q {
             // print("Pressing q.\n");
             // opm_near += 0.1 * shift_modifier;
-            look_at_x += 0.1 * shift_modifier;
+            // look_at_x += 0.1 * shift_modifier;
+            DEGREES += 1 * shift_modifier;
+            print("Changing DEGREES!\n");
           }
+          /*
           if event.key.keysym.sym == SDLK_w {
             // print("Pressing w.\n");
             // opm_top += 0.1 * shift_modifier;
             look_at_y += 0.1 * shift_modifier;
           }
+          */
           if event.key.keysym.sym == SDLK_e {
             // print("Pressing e.\n");
             // opm_far += 0.1 * shift_modifier;
             look_at_z += 0.1 * shift_modifier;
           }
-          */
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
             // move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
@@ -580,10 +605,12 @@ main :: () {
 
     // @NOTE Add some rotation?
     // @TODO create a quaternion
-    _degrees := 45 * (PI / 180);
+    _degrees := DEGREES * (PI / 180);
     x_rotate_counterclockwise : Quaternion = .{-sin(_degrees / 2), 0, 0, 1};
     y_rotate_counterclockwise : Quaternion = .{0, -sin(_degrees / 2), 0, 1};
     z_rotate_counterclockwise : Quaternion = .{0, 0, -sin(_degrees / 2), 1};
+    
+    // @NOTE check rotation matrices
     op_model_matrix = rotate(op_model_matrix, z_rotate_counterclockwise);
 
     // op_model_matrix = cast,force(Vector4) z_rotate_45_degrees_counterclockwise * op_model_matrix;
@@ -601,6 +628,8 @@ main :: () {
     glUseProgram(program_id);
 
     // Set up camera
+    // @TODO check this call where it is in skeletal animation source
+    // @TODO steal whole camera structure and maybe update_flying_camera function
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
 
     // End of checking input events
@@ -610,6 +639,12 @@ main :: () {
     render_iso_tile(debug_iso_tile);
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
+
+    frame_end := current_time_monotonic();
+    delta_time = cast(float) to_float64_seconds(frame_end - frame_start);
+
+    // DEBUG print
+    print("Delta time: %\n", delta_time);
   }
 
   // Delete OpenGL stuff
