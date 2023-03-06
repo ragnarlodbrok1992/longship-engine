@@ -5,6 +5,9 @@
 #import "SDL";
 #import "GL";
 
+// Engine variables
+is_camera_active : bool;
+
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
   #version 330 core
@@ -381,9 +384,30 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
+update_camera ::(using camera: *Camera, delta_time: float) {
+  mouse_delta : Vector2;
+  move_input  : Vector3;
+  move_speed  : float;
+
+  if is_camera_active {
+    move_speed = FLY_SPEED;
+    mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y); // How mouse delta ends up here?
+    print("Mouse delta: %\n", mouse_delta);
+
+    // Key down
+    mouse_speed *= delta_time;
+  }
+}
+
 main :: () {
   // Welcoming messages
   print("Hello, longship-engine!\n");
+
+  // Some start stuff
+  #if OS == .WINDOWS {
+    win32 :: #import "Windows";
+    win32.SetProcessDPIAware();
+  }
 
   // @TODO (6-3-2023) Just steal (learn and use here) some code from skeletal animation example program
   // especially transforms and cameras
@@ -447,6 +471,10 @@ main :: () {
   // Getting MatrixID for MVP
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
+  // Camera
+  main_camera : Camera;
+  // print("%\n", main_camera);
+
   // @NOTE checking out if projection is correct
   opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
   opm_right  := cast(float)  (WINDOW_WIDTH  / 2);
@@ -473,11 +501,14 @@ main :: () {
     // @TODO adding frame delta time
     frame_start := current_time_monotonic();
 
-    // Check input events
-
     event : SDL_Event;
     while SDL_PollEvent(*event) {
       if event.type == {
+        // Mouse events
+        case SDL_MOUSEMOTION;
+          // print("xrel: %, yrel: %\n", event.motion.xrel, event.motion.yrel);
+          mouse_delta_x = event.motion.xrel;
+          mouse_delta_y = event.motion.yrel;
         case SDL_QUIT;
           QUIT = true;
         case SDL_KEYUP;
@@ -505,10 +536,8 @@ main :: () {
             DEGREES += 1 * shift_modifier;
             print("Changing DEGREES!\n");
           }
-          /*
           if event.key.keysym.sym == SDLK_w {
           }
-          */
           if event.key.keysym.sym == SDLK_e {
           }
           if event.key.keysym.sym == SDLK_f {
@@ -520,8 +549,14 @@ main :: () {
             WINDOW_WIDTH = event.window.data1;
             WINDOW_HEIGHT = event.window.data2;
           }
+
+
       }
     }
+
+    // Mouse @TEST
+    mouse_delta := xy(xx mouse_delta_x, xx mouse_delta_y);
+    // print("Mouse delta %\n", mouse_delta);
 
     // Rendering shit
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
