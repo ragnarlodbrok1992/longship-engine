@@ -245,7 +245,6 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
 
 modify_vertex_buffer :: (iso_tile: *IsoTile) {
   glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
-  // glBufferSubData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data)), *iso_tile.vertex_buffer_vertices_data, GL_STATIC_DRAW);
   glBufferSubData(GL_ARRAY_BUFFER, 2 * size_of(GLfloat), size_of(GLfloat), *iso_tile.vertex_buffer_vertices_data[2]);
   print("Buffer vertices data: %\n", iso_tile.vertex_buffer_vertices_data);
 }
@@ -456,36 +455,17 @@ main :: () {
   opm_near   := 0.0;
   opm_far    := 10000.0;
 
-  // Variables for view matrix
-  // viewpoint : Vector3 = .{10.0, 10.0, 10.0};
-  // look_at : Vector3 = .{0.0, 0.0, 0.0};
-
-  // DEBUG
-  translate_x := 0.0;
-  translate_y := 0.0;
-  translate_z := 0.0;
-
-  // I'm not sure how this reference is working...
-  // Forward - look_at - viewpoint => -z
-  // @NOTE - our point of view is just calculated by look_at - viewpoint
-  // viewpoint_x := -0.7853;
-  // viewpoint_y := -0.7853;
-  // viewpoint_z :=  1.237;
-
-  // viewpoint_x := 0.0; 
-  // viewpoint_y := 0.0;
-  // viewpoint_z := 1.0;
-
-  look_at_x := 0.0;
-  look_at_y := 0.0;
-  look_at_z := 0.0;
-
   ref_up_x := 0.0;
   ref_up_y := 0.0;
   ref_up_z := 1.0;
 
   // Time variables
   delta_time := 0.01667;
+
+  // DEBUG
+  translate_x := 0.0;
+  translate_y := 0.0;
+  translate_z := 0.0;
 
   // Main LongshipEngine loop
 
@@ -509,63 +489,31 @@ main :: () {
           if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
 
           if event.key.keysym.sym == SDLK_a {
-            // print("Pressing a.\n"); 
-            // viewpoint_x += 0.01 * shift_modifier;
-            // look_at_x += 0.01 * shift_modifier;
             translate_x += 0.01 * shift_modifier;
             print("Translating x!\n");
             // ref_up_x += 0.01 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_s {
-            // print("Pressing s.\n");
-            // viewpoint_y += 0.01 * shift_modifier;
-            // look_at_y += 0.01 * shift_modifier;
             translate_y += 0.01 * shift_modifier;
             print("Translating y!\n");
-            // ref_up_y += 0.01 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_d {
-            // print("Pressing d.\n");
-            // viewpoint_z += 0.01 * shift_modifier;
-            // look_at_z += 0.01 * shift_modifier;
             translate_z += 0.01 * shift_modifier;
             print("Translating z!\n");
-            // print("Changing viewpoint_z: %\n", viewpoint_z);
-            // ref_up_z += 0.01 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_q {
-            // print("Pressing q.\n");
-            // opm_near += 0.1 * shift_modifier;
-            // look_at_x += 0.1 * shift_modifier;
             DEGREES += 1 * shift_modifier;
             print("Changing DEGREES!\n");
           }
           /*
           if event.key.keysym.sym == SDLK_w {
-            // print("Pressing w.\n");
-            // opm_top += 0.1 * shift_modifier;
-            look_at_y += 0.1 * shift_modifier;
           }
           */
           if event.key.keysym.sym == SDLK_e {
-            // print("Pressing e.\n");
-            // opm_far += 0.1 * shift_modifier;
-            look_at_z += 0.1 * shift_modifier;
           }
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
-            // move_corner_up_or_down(debug_iso_tile, 0.1 * shift_modifier);
           }
-
-          // @TODO ragnar: add some control to camera to see how it works
-
-          // PRINT OPM VALUES
-          // print("OPM: left: %, right: %,\ntop: %, bottom %,\nnear: %, far: %\n",
-          //    opm_left, opm_right, opm_top, opm_bottom, opm_near, opm_far);
-
-          // print("Viewpoint: x %, y %, z %\n", viewpoint_x, viewpoint_y, viewpoint_z);
-          // print("Look_at: x %, y %, z %\n", look_at_x, look_at_y, look_at_z);
-          // print("Translate: x %, y %, z %\n", translate_x, translate_y, translate_z);
 
         case SDL_WINDOWEVENT;
           if event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED {
@@ -574,52 +522,6 @@ main :: () {
           }
       }
     }
-
-    // Create orhographic projection matrix
-    // @TODO ragnar: create a compass of what is where (X, Y, Z) axis
-
-    // DEBUG changing viewpoint by hand
-    // viewpoint : Vector3 = .{viewpoint_x, viewpoint_y, viewpoint_z};
-
-    viewpoint : Vector3 = .{-10.0, -10.0, 10.0};
-    
-
-    look_at : Vector3 = .{look_at_x, look_at_y, look_at_z};
-    reference_up_vector : Vector3 = .{ref_up_x, ref_up_y, ref_up_z}; // Create a good up vector for isomorphic projection
-
-    // @DEBUG lets play with something different than ortographics projection
-    // fov_vertical := 0.785398;
-    // op_projection_matrix := make_projection_matrix(fov_vertical, (cast(float) WINDOW_WIDTH / cast(float) WINDOW_HEIGHT), 0.1, 100.0);
-    op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
-
-    // @NOTE 1 - viewpoint, 2 - look_at, 3 - reference_up_vector 
-    // @NOTE leaving this as-is - we only want to move iso tiles
-    op_view_matrix := make_look_at_matrix(viewpoint, look_at, reference_up_vector, false); // x_is_foward set to false
-    // print("Op view matrix: %\n", op_view_matrix);
-    // @NOTE: idk what is forward
-    // MODEL mat4 idendity matrix
-    op_model_matrix := Matrix4_Identity;
-    op_model_matrix._41 = translate_x;
-    op_model_matrix._42 = translate_y;
-    op_model_matrix._43 = translate_z;
-
-    // @NOTE Add some rotation?
-    // @TODO create a quaternion
-    _degrees := DEGREES * (PI / 180);
-    x_rotate_counterclockwise : Quaternion = .{-sin(_degrees / 2), 0, 0, 1};
-    y_rotate_counterclockwise : Quaternion = .{0, -sin(_degrees / 2), 0, 1};
-    z_rotate_counterclockwise : Quaternion = .{0, 0, -sin(_degrees / 2), 1};
-    
-    // @NOTE check rotation matrices
-    op_model_matrix = rotate(op_model_matrix, z_rotate_counterclockwise);
-
-    // op_model_matrix = cast,force(Vector4) z_rotate_45_degrees_counterclockwise * op_model_matrix;
-
-    // @TODO build translation, rotation and scale matrices
-    mvp_matrix := op_projection_matrix * op_view_matrix * op_model_matrix;
-    // mvp_matrix := op_projection_matrix * op_model_matrix;
-    
-    // print("Ortographic projection matrix: %\n", op_matrix);
 
     // Rendering shit
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
@@ -630,6 +532,17 @@ main :: () {
     // Set up camera
     // @TODO check this call where it is in skeletal animation source
     // @TODO steal whole camera structure and maybe update_flying_camera function
+    // @NOTE for now leave projections and translation, rest is commented out
+
+    op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
+
+    op_model_matrix := Matrix4_Identity;
+    op_model_matrix._41 = translate_x;
+    op_model_matrix._42 = translate_y;
+    op_model_matrix._43 = translate_z;
+
+    mvp_matrix := op_projection_matrix * op_model_matrix;
+
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
 
     // End of checking input events
@@ -644,7 +557,7 @@ main :: () {
     delta_time = cast(float) to_float64_seconds(frame_end - frame_start);
 
     // DEBUG print
-    print("Delta time: %\n", delta_time);
+    // print("Delta time: %\n", delta_time);
   }
 
   // Delete OpenGL stuff
