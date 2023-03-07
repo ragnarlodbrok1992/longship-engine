@@ -22,7 +22,7 @@ MAIN_ENGINE_WINDOW : *void;
 
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
-  #version 330 core
+  #version 460 core
   layout(location = 0) in vec3 vertexPosition_modelspace;
   layout(location = 1) in vec3 vertexColor;
 
@@ -38,7 +38,7 @@ VERTEX_SHADER :: #string GLSL
 GLSL
 
 FRAGMENT_SHADER :: #string GLSL
-  #version 330 core
+  #version 460 core
 
   in vec3 fragmentColor;
 
@@ -59,8 +59,8 @@ WINDOW_HEIGHT : s32 = 768;
 // @TODO ragnar: create a grid of isotiles
 ISO_TILESET_WIDTH := 1000;
 ISO_TILESET_HEIGHT := 1000;
-ISO_TILE_WIDTH := 100;
-ISO_TILE_HEIGHT := 100;
+ISO_TILE_WIDTH := 10;
+ISO_TILE_HEIGHT := 10;
 ISO_TILESET_X := 0;
 ISO_TILESET_Y := 0;
 
@@ -112,7 +112,7 @@ Camera :: struct {
   euler_angles : Vector3;
   rotation : Quaternion;
   rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  fov := 45.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+  fov := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
   transform := Matrix4_Identity;
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
@@ -416,6 +416,8 @@ update_camera ::(using camera: *Camera, delta_time: float) {
     move_input.x = camera_controls.move_input_x;
     move_input.y = camera_controls.move_input_y;
     move_input.z = camera_controls.move_input_z;
+
+    move_input = rotate(unit_vector(move_input), rotation);
   }
 
   position += move_input * move_speed;
@@ -441,6 +443,7 @@ update_camera ::(using camera: *Camera, delta_time: float) {
   vw := WINDOW_WIDTH;
   vh := WINDOW_HEIGHT;
   aspect_ratio := vw / cast(float) vh;
+  // print("Aspect ratio: %, vw: %, vh: %\n", aspect_ratio, vw, vh);
   projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
   view_projection_matrix = projection_matrix * view_matrix;
 }
@@ -521,32 +524,31 @@ main :: () {
   // Camera
   is_camera_active = true;
   main_camera : Camera;
+  // main_camera.position = .{10.0, 10.0, 10.0};
   // print("%\n", main_camera);
 
-  // @NOTE checking out if projection is correct
-  opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
-  opm_right  := cast(float)  (WINDOW_WIDTH  / 2);
-  opm_bottom := cast(float) -(WINDOW_HEIGHT / 2);
-  opm_top    := cast(float)  (WINDOW_HEIGHT / 2);
-  opm_near   := 0.0;
-  opm_far    := 10000.0;
+  // Position camera in a nice way
+  main_camera.position = xyz(100, 100.3, 200.3);
+  main_camera.euler_angles.x = -20 * PI / 180.0;
+  main_camera.euler_angles.y = 10 * PI / 180.0;
 
-  ref_up_x := 0.0;
-  ref_up_y := 0.0;
-  ref_up_z := 1.0;
+  // @NOTE checking out if projection is correct
+  // opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
+  // opm_right  := cast(float)  (WINDOW_WIDTH  / 2);
+  // opm_bottom := cast(float) -(WINDOW_HEIGHT / 2);
+  // opm_top    := cast(float)  (WINDOW_HEIGHT / 2);
+  // opm_near   := 0.0;
+  // opm_far    := 10000.0;
+
+  // ref_up_x := 0.0;
+  // ref_up_y := 0.0;
+  // ref_up_z := 1.0;
 
   // Time variables
   delta_time := 0.01667;
 
-  // DEBUG
-  translate_x := 0.0;
-  translate_y := 0.0;
-  translate_z := 0.0;
-
   // Main LongshipEngine loop
-
   while !QUIT {
-    // @TODO adding frame delta time
     frame_start := current_time_monotonic();
 
     event : SDL_Event;
@@ -554,7 +556,9 @@ main :: () {
       if event.type == {
         // Mouse events
         case SDL_MOUSEMOTION;
-          // print("xrel: %, yrel: %\n", event.motion.xrel, event.motion.yrel);
+          // @TODO make changing of mouse only if button is pushed
+          // print("Event.key.keysym.sym: %\n", event.key.keysym.sym);
+
           mouse_delta_x = event.motion.xrel;
           mouse_delta_y = event.motion.yrel;
         case SDL_QUIT;
@@ -574,9 +578,6 @@ main :: () {
           if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
 
           if event.key.keysym.sym == SDLK_a {
-            // translate_x += 0.01 * shift_modifier;
-            // print("Translating x!\n");
-
             if is_camera_active camera_controls.move_input_x = 1.0;
           }
           if event.key.keysym.sym == SDLK_s {
@@ -635,20 +636,19 @@ main :: () {
     // @NOTE for now leave projections and translation, rest is commented out
 
     // Old projection code
-    op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
+    // op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
 
-    op_model_matrix := Matrix4_Identity;
-    op_model_matrix._41 = translate_x;
-    op_model_matrix._42 = translate_y;
-    op_model_matrix._43 = translate_z;
+    // op_model_matrix := Matrix4_Identity;
+    // op_model_matrix._41 = translate_x;
+    // op_model_matrix._42 = translate_y;
+    // op_model_matrix._43 = translate_z;
 
-    mvp_matrix := op_projection_matrix * op_model_matrix;
+    // mvp_matrix := op_projection_matrix * op_model_matrix;
 
     // Camera code goes here
     update_camera(*main_camera, delta_time);
     // print("Main camera: %\n", main_camera);
     // print("Main camera position: %\n", main_camera);
-
 
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
