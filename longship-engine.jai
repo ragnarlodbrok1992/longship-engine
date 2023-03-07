@@ -1,12 +1,23 @@
 #import "Basic";
 
+#import "Window_Creation";
 #import "Input";
 #import "Math";
 #import "SDL";
 #import "GL";
 
+// Engine structs
+CameraControls :: struct {
+  move_input_x: float;
+  move_input_y: float;
+  move_input_z: float;
+}
+
 // Engine variables
 is_camera_active : bool;
+camera_controls : CameraControls;
+
+MAIN_ENGINE_WINDOW : *void;
 
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
@@ -389,14 +400,45 @@ update_camera ::(using camera: *Camera, delta_time: float) {
   move_input  : Vector3;
   move_speed  : float;
 
+  yaw   : Quaternion;
+  pitch : Quaternion;
+
   if is_camera_active {
     move_speed = FLY_SPEED;
     mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y); // How mouse delta ends up here?
-    print("Mouse delta: %\n", mouse_delta);
+    // print("Mouse delta: %\n", mouse_delta);
 
     // Key down
-    mouse_speed *= delta_time;
+    move_speed *= delta_time;
+
+    // Checking camera controls
+    move_input.x = camera_controls.move_input_x;
+    move_input.y = camera_controls.move_input_y;
+    move_input.z = camera_controls.move_input_z;
   }
+
+  position += move_input * move_speed;
+
+  rotation_input = lerp(rotation_input, mouse_delta, ROTATION_SMOOTHING);
+  delta := rotation_input * ROTATION_SPEED;
+
+  euler_angles.x += delta.x * PI / 180.0;
+  euler_angles.y += delta.y * PI / 180.0;
+
+  euler_angles.y = clamp(euler_angles.y, -80.0 * PI / 180.0, 80.0 * PI / 180.0);
+
+  set_from_axis_and_angle(*yaw,    0, -1, 0, euler_angles.x);
+  set_from_axis_and_angle(*pitch, -1,  0, 0, euler_angles.y);
+
+  rotation = yaw * pitch;
+
+  // Transformers are here
+  transform = make_translation_matrix4(position) * rotation_matrix(Matrix4, rotation);
+  view_matrix = inverse(transform);
+  vx, vy, vw, vh := get_dimensions(MAIN_ENGINE_WINDOW, false);
+  aspect_ratio := vw / cast(float) vh;
+  projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+  view_projection_matrix = projection_matrix * view_matrix;
 }
 
 main :: () {
@@ -428,6 +470,7 @@ main :: () {
   SDL_Init(SDL_INIT_VIDEO);
 
   MAIN_ENGINE_WINDOW := SDL_CreateWindow(WINDOW_TITLE_BAR, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xx WINDOW_WIDTH, xx WINDOW_HEIGHT, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+  print("Main engine window: %, type_of: %\n", MAIN_ENGINE_WINDOW, type_of(MAIN_ENGINE_WINDOW));
   if MAIN_ENGINE_WINDOW == null {
     print("Could not create window: %\n", to_string(SDL_GetError()));
     return;
@@ -513,6 +556,12 @@ main :: () {
           QUIT = true;
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
+          if event.key.keysym.sym == SDLK_a camera_controls.move_input_x = 0.0;
+          if event.key.keysym.sym == SDLK_s camera_controls.move_input_z = 0.0;
+          if event.key.keysym.sym == SDLK_d camera_controls.move_input_x = 0.0;
+          if event.key.keysym.sym == SDLK_q camera_controls.move_input_y = 0.0;
+          if event.key.keysym.sym == SDLK_w camera_controls.move_input_z = 0.0;
+          if event.key.keysym.sym == SDLK_e camera_controls.move_input_y = 0.0;
         case SDL_KEYDOWN;
           shift_modifier := 1;
 
@@ -522,23 +571,32 @@ main :: () {
           if event.key.keysym.sym == SDLK_a {
             translate_x += 0.01 * shift_modifier;
             print("Translating x!\n");
-            // ref_up_x += 0.01 * shift_modifier;
+
+            if is_camera_active camera_controls.move_input_x = 1.0;
           }
           if event.key.keysym.sym == SDLK_s {
             translate_y += 0.01 * shift_modifier;
             print("Translating y!\n");
+
+            if is_camera_active camera_controls.move_input_z = -1.0;
           }
           if event.key.keysym.sym == SDLK_d {
             translate_z += 0.01 * shift_modifier;
             print("Translating z!\n");
+
+            if is_camera_active camera_controls.move_input_x = -1.0;
           }
           if event.key.keysym.sym == SDLK_q {
             DEGREES += 1 * shift_modifier;
             print("Changing DEGREES!\n");
+
+            if is_camera_active camera_controls.move_input_y = 1.0;
           }
           if event.key.keysym.sym == SDLK_w {
+            if is_camera_active camera_controls.move_input_z = 1.0;
           }
           if event.key.keysym.sym == SDLK_e {
+            if is_camera_active camera_controls.move_input_y = -1.0;
           }
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
@@ -549,8 +607,6 @@ main :: () {
             WINDOW_WIDTH = event.window.data1;
             WINDOW_HEIGHT = event.window.data2;
           }
-
-
       }
     }
 
@@ -569,6 +625,7 @@ main :: () {
     // @TODO steal whole camera structure and maybe update_flying_camera function
     // @NOTE for now leave projections and translation, rest is commented out
 
+    // Old projection code
     op_projection_matrix := orthographic_projection_matrix(opm_left, opm_right, opm_bottom, opm_top, opm_near, opm_far);
 
     op_model_matrix := Matrix4_Identity;
@@ -578,7 +635,13 @@ main :: () {
 
     mvp_matrix := op_projection_matrix * op_model_matrix;
 
+    // Camera code goes here
+    update_camera(*main_camera, delta_time);
+    // print("Main camera: %\n", main_camera);
+
+
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
+    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, *main_camera.view_projection_matrix.coef[0][0]);
 
     // End of checking input events
     glClear(GL_COLOR_BUFFER_BIT);
