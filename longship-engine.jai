@@ -65,7 +65,7 @@ ISO_TILESET_X := 0;
 ISO_TILESET_Y := 0;
 
 // @DEBUG
-DEGREES := 0;
+// DEGREES := 0;
 
 // Define structs
 Color :: struct {
@@ -104,7 +104,7 @@ OGLPoint :: struct {
 
 // @NOTE stolen code from skeletal-animation (or inspiration, whatever)
 Camera :: struct {
-  FLY_SPEED :: 1.0;
+  FLY_SPEED :: 10.0;
   ROTATION_SPEED :: 0.3;
   ROTATION_SMOOTHING :: 0.3;
 
@@ -112,7 +112,7 @@ Camera :: struct {
   euler_angles : Vector3;
   rotation : Quaternion;
   rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  fov := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+  fov := 30.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
   transform := Matrix4_Identity;
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
@@ -186,6 +186,11 @@ populate_iso_tile :: (iso_tile: *IsoTile) {
   iso_tile.ne = .{cast(float)  ISO_TILE_WIDTH, cast(float)  ISO_TILE_HEIGHT, 0};
   iso_tile.se = .{cast(float)  ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
   iso_tile.sw = .{cast(float) -ISO_TILE_WIDTH, cast(float) -ISO_TILE_HEIGHT, 0};
+
+  // iso_tile.nw = .{10.0, 1.0, 0.0};
+  // iso_tile.ne = .{10.0, 10.0, 0.0};
+  // iso_tile.se = .{1.0, 10.0, 0.0};
+  // iso_tile.sw = .{1.0, 1.0, 0.0};
 
   print("iso tile nw: %\n", iso_tile.nw);
   print("iso tile ne: %\n", iso_tile.ne);
@@ -396,7 +401,7 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
-update_camera ::(using camera: *Camera, delta_time: float) {
+update_camera :: (using camera: *Camera, delta_time: float) {
   mouse_delta : Vector2;
   move_input  : Vector3;
   move_speed  : float;
@@ -407,9 +412,6 @@ update_camera ::(using camera: *Camera, delta_time: float) {
   if is_camera_active {
     move_speed = FLY_SPEED;
     mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y); // How mouse delta ends up here?
-    // print("Mouse delta: %\n", mouse_delta);
-
-    // Key down
     move_speed *= delta_time;
 
     // Checking camera controls
@@ -419,7 +421,6 @@ update_camera ::(using camera: *Camera, delta_time: float) {
 
     move_input = rotate(unit_vector(move_input), rotation);
   }
-
   position += move_input * move_speed;
 
   rotation_input = lerp(rotation_input, mouse_delta, ROTATION_SMOOTHING);
@@ -430,8 +431,12 @@ update_camera ::(using camera: *Camera, delta_time: float) {
 
   euler_angles.y = clamp(euler_angles.y, -80.0 * PI / 180.0, 80.0 * PI / 180.0);
 
+  // @TEST - correct stuff here (or correct?)
   set_from_axis_and_angle(*yaw,    0, -1, 0, euler_angles.x);
   set_from_axis_and_angle(*pitch, -1,  0, 0, euler_angles.y);
+
+  // set_from_axis_and_angle(*yaw,    0, -1,  0, euler_angles.x);
+  // set_from_axis_and_angle(*pitch,  0,  0, -1, euler_angles.y);
 
   rotation = yaw * pitch;
 
@@ -446,6 +451,11 @@ update_camera ::(using camera: *Camera, delta_time: float) {
   // print("Aspect ratio: %, vw: %, vh: %\n", aspect_ratio, vw, vh);
   projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
   view_projection_matrix = projection_matrix * view_matrix;
+
+  // DEBUG prints
+  // print("View_projection_matrix: %\n", view_projection_matrix);
+  // print("Aspect ratio: %\n", aspect_ratio);
+  // print("Rotation_input: %\n", rotation_input);
 }
 
 main :: () {
@@ -528,9 +538,9 @@ main :: () {
   // print("%\n", main_camera);
 
   // Position camera in a nice way
-  main_camera.position = xyz(100, 100.3, 200.3);
-  main_camera.euler_angles.x = -20 * PI / 180.0;
-  main_camera.euler_angles.y = 10 * PI / 180.0;
+  main_camera.position = xyz(0.0, 0.0, 100.0);
+  main_camera.euler_angles.x = 0 * PI / 180.0;
+  main_camera.euler_angles.y = 0 * PI / 180.0;
 
   // @NOTE checking out if projection is correct
   // opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
@@ -547,6 +557,9 @@ main :: () {
   // Time variables
   delta_time := 0.01667;
 
+  // Control variables
+  space_pushed := false;
+
   // Main LongshipEngine loop
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -558,12 +571,18 @@ main :: () {
         case SDL_MOUSEMOTION;
           // @TODO make changing of mouse only if button is pushed
           // print("Event.key.keysym.sym: %\n", event.key.keysym.sym);
-
-          mouse_delta_x = event.motion.xrel;
-          mouse_delta_y = event.motion.yrel;
+          if space_pushed {
+            mouse_delta_x = event.motion.xrel;
+            mouse_delta_y = event.motion.yrel;
+          }
         case SDL_QUIT;
           QUIT = true;
         case SDL_KEYUP;
+          if event.key.keysym.sym == SDLK_SPACE {
+            space_pushed = false;
+            mouse_delta_x = 0;
+            mouse_delta_y = 0;
+          }
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
           if event.key.keysym.sym == SDLK_a camera_controls.move_input_x = 0.0;
           if event.key.keysym.sym == SDLK_s camera_controls.move_input_z = 0.0;
@@ -573,6 +592,8 @@ main :: () {
           if event.key.keysym.sym == SDLK_e camera_controls.move_input_y = 0.0;
         case SDL_KEYDOWN;
           shift_modifier := 1;
+
+          if event.key.keysym.sym == SDLK_SPACE space_pushed = true;
 
           if event.key.keysym.mod == KMOD_LSHIFT then shift_modifier = -1;
           if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
@@ -607,8 +628,8 @@ main :: () {
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
             print("Main camera position: %\n", main_camera.position);
-            print("Mouse delta: %\n", mouse_delta);
-            print("Main camera rotation: %\n", main_camera.rotation);
+            // print("Mouse delta: %\n", mouse_delta);
+            // print("Main camera rotation: %\n", main_camera.rotation);
           }
 
         case SDL_WINDOWEVENT;
