@@ -405,6 +405,7 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
+// @FIXME 
 update_camera :: (using camera: *Camera, delta_time: float) {
   mouse_delta : Vector2;
   move_input  : Vector3;
@@ -414,6 +415,7 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   if is_camera_active {
     move_speed = FLY_SPEED;
     mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y); // How mouse delta ends up here?
+    print("Mouse delta: %\n", mouse_delta);
     move_speed *= delta_time;
 
     // Checking camera controls
