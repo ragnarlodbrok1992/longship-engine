@@ -16,6 +16,7 @@ CameraControls :: struct {
 // Engine variables
 is_camera_active : bool;
 camera_controls : CameraControls;
+mouse_delta : Vector2;
 
 MAIN_ENGINE_WINDOW : *void;
 
@@ -435,7 +436,10 @@ update_camera ::(using camera: *Camera, delta_time: float) {
   // Transformers are here
   transform = make_translation_matrix4(position) * rotation_matrix(Matrix4, rotation);
   view_matrix = inverse(transform);
-  vx, vy, vw, vh := get_dimensions(MAIN_ENGINE_WINDOW, false);
+  // vx, vy, vw, vh := get_dimensions(MAIN_ENGINE_WINDOW, false);
+  // print("vx vy vw vh: % % % %\n", vx, vy, vw, vh); // @FIXME here is a bug - we get all zeros
+  vw := WINDOW_WIDTH;
+  vh := WINDOW_HEIGHT;
   aspect_ratio := vw / cast(float) vh;
   projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
   view_projection_matrix = projection_matrix * view_matrix;
@@ -515,6 +519,7 @@ main :: () {
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
   // Camera
+  is_camera_active = true;
   main_camera : Camera;
   // print("%\n", main_camera);
 
@@ -569,26 +574,26 @@ main :: () {
           if event.key.keysym.mod == KMOD_RSHIFT then shift_modifier = -1;
 
           if event.key.keysym.sym == SDLK_a {
-            translate_x += 0.01 * shift_modifier;
-            print("Translating x!\n");
+            // translate_x += 0.01 * shift_modifier;
+            // print("Translating x!\n");
 
             if is_camera_active camera_controls.move_input_x = 1.0;
           }
           if event.key.keysym.sym == SDLK_s {
-            translate_y += 0.01 * shift_modifier;
-            print("Translating y!\n");
+            // translate_y += 0.01 * shift_modifier;
+            // print("Translating y!\n");
 
             if is_camera_active camera_controls.move_input_z = -1.0;
           }
           if event.key.keysym.sym == SDLK_d {
-            translate_z += 0.01 * shift_modifier;
-            print("Translating z!\n");
+            // translate_z += 0.01 * shift_modifier;
+            // print("Translating z!\n");
 
             if is_camera_active camera_controls.move_input_x = -1.0;
           }
           if event.key.keysym.sym == SDLK_q {
-            DEGREES += 1 * shift_modifier;
-            print("Changing DEGREES!\n");
+            // DEGREES += 1 * shift_modifier;
+            // print("Changing DEGREES!\n");
 
             if is_camera_active camera_controls.move_input_y = 1.0;
           }
@@ -600,6 +605,9 @@ main :: () {
           }
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
+            print("Main camera position: %\n", main_camera.position);
+            print("Mouse delta: %\n", mouse_delta);
+            print("Main camera rotation: %\n", main_camera.rotation);
           }
 
         case SDL_WINDOWEVENT;
@@ -611,8 +619,9 @@ main :: () {
     }
 
     // Mouse @TEST
-    mouse_delta := xy(xx mouse_delta_x, xx mouse_delta_y);
+    mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y);
     // print("Mouse delta %\n", mouse_delta);
+    // print("Mouse delta type_of: %\n", type_of(mouse_delta));
 
     // Rendering shit
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
@@ -638,9 +647,11 @@ main :: () {
     // Camera code goes here
     update_camera(*main_camera, delta_time);
     // print("Main camera: %\n", main_camera);
+    // print("Main camera position: %\n", main_camera);
 
 
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
+    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, *main_camera.view_projection_matrix.coef[0][0]);
 
     // End of checking input events
