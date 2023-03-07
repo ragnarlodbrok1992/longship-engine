@@ -18,6 +18,8 @@ is_camera_active : bool;
 camera_controls : CameraControls;
 mouse_delta : Vector2;
 
+//  line_vao : GLuint;
+
 MAIN_ENGINE_WINDOW : *void;
 
 // Shaders - for now here
@@ -85,10 +87,12 @@ PointF :: struct {
   y: float;
 }
 
+/*
 Line :: struct {
   start: Point;
   end: Point;
 }
+*/
 
 OGLColor :: struct {
   r: GLfloat;
@@ -104,15 +108,15 @@ OGLPoint :: struct {
 
 // @NOTE stolen code from skeletal-animation (or inspiration, whatever)
 Camera :: struct {
-  FLY_SPEED :: 10.0;
-  ROTATION_SPEED :: 0.3;
+  FLY_SPEED :: 100.0;
+  ROTATION_SPEED :: 0.03;
   ROTATION_SMOOTHING :: 0.3;
 
   position : Vector3;
   euler_angles : Vector3;
   rotation : Quaternion;
   rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  fov := 30.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+  fov := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
   transform := Matrix4_Identity;
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
@@ -406,8 +410,6 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   move_input  : Vector3;
   move_speed  : float;
 
-  yaw   : Quaternion;
-  pitch : Quaternion;
 
   if is_camera_active {
     move_speed = FLY_SPEED;
@@ -432,7 +434,9 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   euler_angles.y = clamp(euler_angles.y, -80.0 * PI / 180.0, 80.0 * PI / 180.0);
 
   // @TEST - correct stuff here (or correct?)
+  yaw   : Quaternion;
   set_from_axis_and_angle(*yaw,    0, -1, 0, euler_angles.x);
+  pitch : Quaternion;
   set_from_axis_and_angle(*pitch, -1,  0, 0, euler_angles.y);
 
   // set_from_axis_and_angle(*yaw,    0, -1,  0, euler_angles.x);
@@ -456,6 +460,68 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   // print("View_projection_matrix: %\n", view_projection_matrix);
   // print("Aspect ratio: %\n", aspect_ratio);
   // print("Rotation_input: %\n", rotation_input);
+
+  //@TODO @FIXME moving camera is like rotating but with clamping - we cannot turn around
+  // there are some bugs here
+  // print("Move input: %\n", move_input);
+}
+
+Line :: struct {
+  start       : Vector3;
+  end         : Vector3;
+  start_color : Vector3;
+  end_color   : Vector3;
+
+  line_vbo_vertex : GLuint;
+  line_vbo_colors : GLuint;
+
+  line_data_vertex : [2]Vector3;
+  line_data_colors : [2]Vector3;
+}
+
+create_line_buffers :: (line: *Line) {
+
+  glGenBuffers(1, *line.line_vbo_vertex);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+
+  glGenBuffers(1, *line.line_vbo_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+}
+
+populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
+  line.start       = start;
+  line.end         = end;
+  line.start_color = start_color;
+  line.end_color   = end_color;
+
+  line.line_data_vertex[0] = start;
+  line.line_data_vertex[1] = end;
+
+  line.line_data_colors[0] = start_color;
+  line.line_data_colors[1] = end_color;
+
+  create_line_buffers(line);
+}
+
+draw_line :: (line: *Line) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  // print("Line.line_vbo_vertex: %\n", line.line_vbo_vertex);
+  // print("Line.line_vbo_colors: %\n", line.line_vbo_colors);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_LINES, 0, 2);
+  
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
 }
 
 main :: () {
@@ -524,12 +590,30 @@ main :: () {
   vertex_array_id : GLuint;
   glGenVertexArrays(1, *vertex_array_id);
   glBindVertexArray(vertex_array_id);
+  
+  // VAO for lines
+  // glGenVertexArrays(1, *line_vao);
+  // glBindVertexArray(line_vao);
 
   // Loading shaders
   program_id := load_shaders();
 
   // Getting MatrixID for MVP
   matrix_id := glGetUniformLocation(program_id, "MVP");
+
+  // Create line buffers
+  debug_line_x := New(Line);
+  debug_line_y := New(Line);
+  debug_line_z := New(Line);
+
+  populate_line(debug_line_x, .{-100.0, -10.0,     0.0}, .{100.0,  -10.0,   0.0}, .{1.0, 0.0, 0.0}, .{0.0, 1.0, 0.0});
+  populate_line(debug_line_y, .{0.0,    -100.0,    0.0}, .{0.0,    100.0,   0.0}, .{0.0, 0.0, 1.0}, .{0.0, 0.0, 1.0});
+  populate_line(debug_line_z, .{0.0,    -10.0,  -100.0}, .{0.0,    -10.0, 100.0}, .{0.0, 1.0, 0.0}, .{0.0, 1.0, 0.0});
+
+  // @DEBUG lines
+  print("debug_line_x: %\n", <<debug_line_x);
+  print("debug_line_y: %\n", <<debug_line_y);
+  print("debug_line_z: %\n", <<debug_line_z);
 
   // Camera
   is_camera_active = true;
@@ -678,8 +762,14 @@ main :: () {
     // End of checking input events
     glClear(GL_COLOR_BUFFER_BIT);
 
+    // Draw two lines
+    // @FIXME this is FUCKED UP
+    draw_line(debug_line_x); // This is RED
+    draw_line(debug_line_y); // This is BLUE
+    draw_line(debug_line_z); // This is GREEN
+
     // Render iso tile
-    render_iso_tile(debug_iso_tile);
+    // render_iso_tile(debug_iso_tile);
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
 
@@ -693,4 +783,5 @@ main :: () {
   // Delete OpenGL stuff
   glDeleteProgram(program_id);
   glDeleteVertexArrays(1, *vertex_array_id);
+  // glDeleteVertexArray(1, *line_vao);
 }
