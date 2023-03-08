@@ -405,6 +405,12 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
+create_projection_matrix :: () -> Matrix4 {
+  result := Matrix4_Identity;
+
+  return result;
+}
+
 // @FIXME 
 update_camera :: (using camera: *Camera, delta_time: float) {
   mouse_delta : Vector2;
@@ -470,9 +476,11 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   vw := WINDOW_WIDTH;
   vh := WINDOW_HEIGHT;
 
-  aspect_ratio := vw / cast(float) vh;
+  // aspect_ratio := vw / cast(float) vh;
 
-  projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+  // @TODO @FIXME - this projection is weird
+  // lets make our own projection matrix
+  // projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
 
   print_mat4("projection_matrix", projection_matrix);
   print_mat4("view_matrix", view_matrix);
