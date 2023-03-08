@@ -108,8 +108,8 @@ OGLPoint :: struct {
 
 // @NOTE stolen code from skeletal-animation (or inspiration, whatever)
 Camera :: struct {
-  FLY_SPEED :: 100.0;
-  ROTATION_SPEED :: 0.03;
+  FLY_SPEED :: 10.0;
+  ROTATION_SPEED :: 0.003;
   ROTATION_SMOOTHING :: 0.3;
 
   position : Vector3;
@@ -415,7 +415,7 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   if is_camera_active {
     move_speed = FLY_SPEED;
     mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y); // How mouse delta ends up here?
-    print("Mouse delta: %\n", mouse_delta);
+    // print("Mouse delta: %\n", mouse_delta);
     move_speed *= delta_time;
 
     // Checking camera controls
@@ -441,31 +441,21 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   pitch : Quaternion;
   set_from_axis_and_angle(*pitch, -1,  0, 0, euler_angles.y);
 
-  // set_from_axis_and_angle(*yaw,    0, -1,  0, euler_angles.x);
-  // set_from_axis_and_angle(*pitch,  0,  0, -1, euler_angles.y);
-
   rotation = yaw * pitch;
 
   // Transformers are here
   transform = make_translation_matrix4(position) * rotation_matrix(Matrix4, rotation);
   view_matrix = inverse(transform);
-  // vx, vy, vw, vh := get_dimensions(MAIN_ENGINE_WINDOW, false);
-  // print("vx vy vw vh: % % % %\n", vx, vy, vw, vh); // @FIXME here is a bug - we get all zeros
   vw := WINDOW_WIDTH;
   vh := WINDOW_HEIGHT;
   aspect_ratio := vw / cast(float) vh;
-  // print("Aspect ratio: %, vw: %, vh: %\n", aspect_ratio, vw, vh);
   projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
   view_projection_matrix = projection_matrix * view_matrix;
-
-  // DEBUG prints
-  // print("View_projection_matrix: %\n", view_projection_matrix);
-  // print("Aspect ratio: %\n", aspect_ratio);
-  // print("Rotation_input: %\n", rotation_input);
 
   //@TODO @FIXME moving camera is like rotating but with clamping - we cannot turn around
   // there are some bugs here
   // print("Move input: %\n", move_input);
+  // print("Position: %\n", position);
 }
 
 Line :: struct {
@@ -513,6 +503,8 @@ draw_line :: (line: *Line) {
 
   // print("Line.line_vbo_vertex: %\n", line.line_vbo_vertex);
   // print("Line.line_vbo_colors: %\n", line.line_vbo_colors);
+
+  // print("Drawing line: %, vbo_vertex: %\n", line, line.line_vbo_vertex);
 
   glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
@@ -608,14 +600,40 @@ main :: () {
   debug_line_y := New(Line);
   debug_line_z := New(Line);
 
-  populate_line(debug_line_x, .{-100.0, -10.0,     0.0}, .{100.0,  -10.0,   0.0}, .{1.0, 0.0, 0.0}, .{0.0, 1.0, 0.0});
-  populate_line(debug_line_y, .{0.0,    -100.0,    0.0}, .{0.0,    100.0,   0.0}, .{0.0, 0.0, 1.0}, .{0.0, 0.0, 1.0});
-  populate_line(debug_line_z, .{0.0,    -10.0,  -100.0}, .{0.0,    -10.0, 100.0}, .{0.0, 1.0, 0.0}, .{0.0, 1.0, 0.0});
+  x_line_color : Vector3 = .{1.0, 0.0, 0.0};
+  y_line_color : Vector3 =  .{0.0, 0.0, 1.0};
+  z_line_color : Vector3 = .{0.0, 1.0, 0.0}; 
 
-  // @DEBUG lines
-  print("debug_line_x: %\n", <<debug_line_x);
-  print("debug_line_y: %\n", <<debug_line_y);
-  print("debug_line_z: %\n", <<debug_line_z);
+  populate_line(debug_line_x, .{-100.0, -10.0,     0.0}, .{100.0,  -10.0,   0.0}, x_line_color, x_line_color);
+  populate_line(debug_line_y, .{0.0,    -100.0,    0.0}, .{0.0,    100.0,   0.0}, y_line_color, y_line_color);
+  populate_line(debug_line_z, .{0.0,    -10.0,  -100.0}, .{0.0,    -10.0, 100.0}, z_line_color, z_line_color);
+
+  // @TODO create array of 10 lines on X axis (-10.0 on Y) side by side
+  x_lines := New([10]Line);
+
+  // @TODO create array of 10 lines on Z axis (-10.0 on Y) side by side
+  z_lines := New([10]Line);
+
+  x_lines_view : []Line;
+  x_lines_view = <<x_lines;
+  z_lines_view : []Line;
+  z_lines_view = <<z_lines;
+
+  line_spacing := 10.0;
+  line_spacing_start := -50.0;
+
+  for line, i: x_lines_view {
+    populate_line(*x_lines_view[i], .{-100.0, -10.0, line_spacing_start}, .{100.0, -10.0, line_spacing_start}, x_line_color, x_line_color);
+    
+    line_spacing_start += line_spacing;
+  } 
+
+  line_spacing_start = -50.0;
+  for line, i: z_lines_view {
+    populate_line(*z_lines_view[i], .{line_spacing_start, -10.0, -100.0}, .{line_spacing_start, -10.0, 100.0}, x_line_color, x_line_color);
+    
+    line_spacing_start += line_spacing;
+  } 
 
   // Camera
   is_camera_active = true;
@@ -713,7 +731,7 @@ main :: () {
           }
           if event.key.keysym.sym == SDLK_f {
             print("Pressing f.\n");
-            print("Main camera position: %\n", main_camera.position);
+            // print("Main camera position: %\n", main_camera.position);
             // print("Mouse delta: %\n", mouse_delta);
             // print("Main camera rotation: %\n", main_camera.rotation);
           }
@@ -766,12 +784,24 @@ main :: () {
 
     // Draw two lines
     // @FIXME this is FUCKED UP
-    draw_line(debug_line_x); // This is RED
-    draw_line(debug_line_y); // This is BLUE
-    draw_line(debug_line_z); // This is GREEN
+    // draw_line(debug_line_x); // This is RED
+    // draw_line(debug_line_y); // This is BLUE
+    // draw_line(debug_line_z); // This is GREEN
+
+    // @FIXME this loop doesn't work
+    // Create array view on x_lines
+    // @NOTE It seems like Z axis is squished?
+    for line, i: x_lines_view {
+      // print("Drawing line % nr %\n", line, i);
+      draw_line(*x_lines_view[i]);
+    }
+
+    for line, i: z_lines_view {
+      draw_line(*z_lines_view[i]);
+    }
 
     // Render iso tile
-    // render_iso_tile(debug_iso_tile);
+    render_iso_tile(debug_iso_tile);
 
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
 
