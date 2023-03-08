@@ -430,8 +430,12 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   rotation_input = lerp(rotation_input, mouse_delta, ROTATION_SMOOTHING);
   delta := rotation_input * ROTATION_SPEED;
 
-  euler_angles.x += delta.x * PI / 180.0;
-  euler_angles.y += delta.y * PI / 180.0;
+  // euler_angles.x += delta.x * PI / 180.0;
+  // euler_angles.y += delta.y * PI / 180.0;
+
+  // @NOTE keeping angles at zero to get transforms right
+  euler_angles.x = 0.0;
+  euler_angles.y = 0.0;
 
   euler_angles.y = clamp(euler_angles.y, -80.0 * PI / 180.0, 80.0 * PI / 180.0);
 
@@ -444,13 +448,42 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   rotation = yaw * pitch;
 
   // Transformers are here
-  transform = make_translation_matrix4(position) * rotation_matrix(Matrix4, rotation);
+  // @NOTE position and rotation matrices might be fucked
+  // print("Position: %\n", position);
+  // print("Rotation: %\n", rotation);
+  // @NOTE I think they look ok
+  
+  translation_matrix := make_translation_matrix4(position);
+  transform = translation_matrix * rotation_matrix(Matrix4, rotation);
+
+
   view_matrix = inverse(transform);
+
+  // print("Position: %\n", position);
+  // print("Translation matrix: %\n", translation_matrix);
+  // print("Transform: %\n", transform);
+  // print("View matrix: %\n", view_matrix);
+  print_mat4("translation_matrix", translation_matrix);
+  print_mat4("transform", transform);
+  print("position: %\n", position);
+
   vw := WINDOW_WIDTH;
   vh := WINDOW_HEIGHT;
+
   aspect_ratio := vw / cast(float) vh;
+
   projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+
+  print_mat4("projection_matrix", projection_matrix);
+  print_mat4("view_matrix", view_matrix);
+
   view_projection_matrix = projection_matrix * view_matrix;
+
+  // view_projection_matrix = inverse(view_projection_matrix);
+  
+  print_mat4("view_projection_matrix", view_projection_matrix);
+
+  print("DEBUG END========================\n");
 
   //@TODO @FIXME moving camera is like rotating but with clamping - we cannot turn around
   // there are some bugs here
@@ -516,6 +549,15 @@ draw_line :: (line: *Line) {
   
   glDisableVertexAttribArray(0);
   glDisableVertexAttribArray(1);
+}
+
+// Helper function
+print_mat4 :: (name: string, mat: Matrix4) {
+  print("  [ % ]\n", name);
+  print("[%, %, %, %]\n",   mat._11, mat._12, mat._13, mat._14); 
+  print("[%, %, %, %]\n",   mat._21, mat._22, mat._23, mat._24); 
+  print("[%, %, %, %]\n",   mat._31, mat._32, mat._33, mat._34); 
+  print("[%, %, %, %]\n\n", mat._41, mat._42, mat._43, mat._44); 
 }
 
 main :: () {
