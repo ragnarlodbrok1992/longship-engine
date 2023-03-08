@@ -111,12 +111,14 @@ Camera :: struct {
   FLY_SPEED :: 10.0;
   ROTATION_SPEED :: 0.003;
   ROTATION_SMOOTHING :: 0.3;
+  FOV := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
 
   position : Vector3;
+  rotation_input : Vector2; // I think yaw and pitch - we do not roll here
+
   euler_angles : Vector3;
   rotation : Quaternion;
-  rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  fov := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+
   transform := Matrix4_Identity;
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
@@ -411,7 +413,15 @@ create_projection_matrix :: () -> Matrix4 {
   return result;
 }
 
+update_camera :: (using camera: *Camera, camera_controls: *CameraControls, delta_time: float) {
+  // Check inputs
+  // print("Camera controls: %\n", <<camera_controls);
+  // print("Mouse delta: %\n", mouse_delta);
+  // Inputs are ok
+}
+
 // @FIXME 
+/*
 update_camera :: (using camera: *Camera, delta_time: float) {
   mouse_delta : Vector2;
   move_input  : Vector3;
@@ -436,12 +446,12 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   rotation_input = lerp(rotation_input, mouse_delta, ROTATION_SMOOTHING);
   delta := rotation_input * ROTATION_SPEED;
 
-  // euler_angles.x += delta.x * PI / 180.0;
-  // euler_angles.y += delta.y * PI / 180.0;
+  euler_angles.x += delta.x * PI / 180.0;
+  euler_angles.y += delta.y * PI / 180.0;
 
   // @NOTE keeping angles at zero to get transforms right
-  euler_angles.x = 0.0;
-  euler_angles.y = 0.0;
+  // euler_angles.x = 0.0;
+  // euler_angles.y = 0.0;
 
   euler_angles.y = clamp(euler_angles.y, -80.0 * PI / 180.0, 80.0 * PI / 180.0);
 
@@ -476,16 +486,16 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   vw := WINDOW_WIDTH;
   vh := WINDOW_HEIGHT;
 
-  // aspect_ratio := vw / cast(float) vh;
+  aspect_ratio := vw / cast(float) vh;
 
   // @TODO @FIXME - this projection is weird
   // lets make our own projection matrix
-  // projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+  projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
 
   // print_mat4("projection_matrix", projection_matrix);
   print_mat4("view_matrix", view_matrix);
 
-  // view_projection_matrix = projection_matrix * view_matrix;
+  view_projection_matrix = projection_matrix * view_matrix;
 
   // view_projection_matrix = inverse(view_projection_matrix);
   
@@ -498,6 +508,7 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   // print("Move input: %\n", move_input);
   // print("Position: %\n", position);
 }
+*/
 
 Line :: struct {
   start       : Vector3;
@@ -821,7 +832,7 @@ main :: () {
     // mvp_matrix := op_projection_matrix * op_model_matrix;
 
     // Camera code goes here
-    update_camera(*main_camera, delta_time);
+    update_camera(*main_camera, *camera_controls, delta_time);
     // print("Main camera: %\n", main_camera);
     // print("Main camera position: %\n", main_camera);
 
