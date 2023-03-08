@@ -482,14 +482,14 @@ update_camera :: (using camera: *Camera, delta_time: float) {
   // lets make our own projection matrix
   // projection_matrix = make_projection_matrix(fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
 
-  print_mat4("projection_matrix", projection_matrix);
+  // print_mat4("projection_matrix", projection_matrix);
   print_mat4("view_matrix", view_matrix);
 
-  view_projection_matrix = projection_matrix * view_matrix;
+  // view_projection_matrix = projection_matrix * view_matrix;
 
   // view_projection_matrix = inverse(view_projection_matrix);
   
-  print_mat4("view_projection_matrix", view_projection_matrix);
+  // print_mat4("view_projection_matrix", view_projection_matrix);
 
   print("DEBUG END========================\n");
 
