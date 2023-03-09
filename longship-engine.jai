@@ -113,13 +113,14 @@ Camera :: struct {
   ROTATION_SMOOTHING :: 0.3;
   FOV := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
 
-  position : Vector3;
+  translate_vector : Vector3;
+  scale_vector : Vector3 = .{1.0, 1.0, 1.0}; // Not scaling right now anything
   rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-
   euler_angles : Vector3;
-  rotation : Quaternion;
 
-  transform := Matrix4_Identity;
+  rotation_quat : Quaternion;
+
+  model := Matrix4_Identity;
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
   view_projection_matrix := Matrix4_Identity;
@@ -407,10 +408,16 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
-create_projection_matrix :: () -> Matrix4 {
-  result := Matrix4_Identity;
+model :: () -> Matrix4 {
 
-  return result;
+}
+
+perspective :: () -> Matrix4 {
+
+}
+
+view :: () -> Matrix4 {
+
 }
 
 update_camera :: (using camera: *Camera, camera_controls: *CameraControls, delta_time: float) {
@@ -418,6 +425,37 @@ update_camera :: (using camera: *Camera, camera_controls: *CameraControls, delta
   // print("Camera controls: %\n", <<camera_controls);
   // print("Mouse delta: %\n", mouse_delta);
   // Inputs are ok
+
+  // @NOTES let's think about it
+  // How it is done in OpenGL and in graphics general.
+  // Lets start with path that matrices need to follow in order
+  // to achieve what we see in games today.
+  // Translation -> Rotation -> Scale
+  // Or should it be Scale -> Translate -> Rotate?
+  // Let's try that
+  // Model Coordinates - our input from OpenGL <- We just push MVP matrix there
+  // Model Matrix <- Scale, transform and rotation of objects
+  // After this we have object in world coordinates
+  // Object is scaled, rotated and moved.
+  // Now we proceed to View Matrix.
+  // After that we have Camera Coordinates - object in relation to camera.
+  // Last thing is to apply Projection Matrix to whole thing.
+
+  // In GLM function lookAt generates specific View matrix
+
+  // @TODO stuff that needs to be done
+  // 1. Create model matrix
+  //   a. Create scaling
+  //   b. Create translation
+  //   c. Create rotation of objects
+
+  // 1a.
+  model._11 = scale_vector.x;
+  model._22 = scale_vector.y;
+  model._33 = scale_vector.z;
+
+  print_mat4("Model", model);
+
 }
 
 // @FIXME 
@@ -703,9 +741,9 @@ main :: () {
   // print("%\n", main_camera);
 
   // Position camera in a nice way
-  main_camera.position = xyz(0.0, 0.0, 100.0);
-  main_camera.euler_angles.x = 0 * PI / 180.0;
-  main_camera.euler_angles.y = 0 * PI / 180.0;
+  // main_camera.position = xyz(0.0, 0.0, 100.0);
+  // main_camera.euler_angles.x = 0 * PI / 180.0;
+  // main_camera.euler_angles.y = 0 * PI / 180.0;
 
   // @NOTE checking out if projection is correct
   // opm_left   := cast(float) -(WINDOW_WIDTH  / 2);
