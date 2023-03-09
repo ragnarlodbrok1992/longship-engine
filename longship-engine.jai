@@ -111,18 +111,23 @@ Camera :: struct {
   FLY_SPEED :: 10.0;
   ROTATION_SPEED :: 0.003;
   ROTATION_SMOOTHING :: 0.3;
-  FOV := 60.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
-
-  translate_vector : Vector3;
-  scale_vector : Vector3 = .{1.0, 1.0, 1.0}; // Not scaling right now anything
-  rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  euler_angles : Vector3;
-
-  rotation_quat : Quaternion;
+  FOV := 45.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
 
   model := Matrix4_Identity;
+  model_translate_vector : Vector3 = .{0.0, 0.0, 0.0}; // Not translating right now anything
+  model_scale_vector : Vector3 = .{1.0, 1.0, 1.0}; // Not scaling right now anything
+  model_euler_angles : Vector3;
+  model_rotation_quat : Quaternion;
+
   view_matrix := Matrix4_Identity;
+  view_translate_vector : Vector3;
+  view_rotation_input : Vector2; // I think yaw and pitch - we do not roll here
+  view_euler_angles : Vector3;
+  view_rotation_quat : Quaternion;
+
   projection_matrix := Matrix4_Identity;
+
+  // This matrix goes to shader - it's output from updating camera
   view_projection_matrix := Matrix4_Identity;
 }
   
@@ -450,12 +455,18 @@ update_camera :: (using camera: *Camera, camera_controls: *CameraControls, delta
   //   c. Create rotation of objects
 
   // 1a.
-  model._11 = scale_vector.x;
-  model._22 = scale_vector.y;
-  model._33 = scale_vector.z;
+  model._11 = model_scale_vector.x;
+  model._22 = model_scale_vector.y;
+  model._33 = model_scale_vector.z;
+
+  // print_mat4("Model", model);
+  // 1b. Translation moves object in space - it's different than moving camera away from (0, 0, 0)
+  // center of our OpenGL universe
+  model._14 = model_translate_vector.x;
+  model._24 = model_translate_vector.y;
+  model._34 = model_translate_vector.z;
 
   print_mat4("Model", model);
-
 }
 
 // @FIXME 
