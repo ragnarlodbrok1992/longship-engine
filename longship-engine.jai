@@ -140,7 +140,7 @@ create_line_buffers :: (line: *Line) {
 
   glGenBuffers(1, *line.line_vbo_colors);
   glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_colors)), *line.line_data_colors, GL_DYNAMIC_DRAW);
 }
 
 populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
@@ -292,26 +292,22 @@ main :: () {
   line_spacing := 10.0;
 
   line_spacing_start := -50.0;
-  /*
   for line, i: x_lines_view {
     populate_line(*x_lines_view[i], .{-100.0, 0.0, line_spacing_start}, .{100.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
-  */
 
-  // line_spacing_start = -50.0;
+  line_spacing_start = -50.0;
   for line, i: y_lines_view {
     populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start ,100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  /*
   line_spacing_start = -50.0;
   for line, i: z_lines_view {
     populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start ,0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
-  */
 
   // Create view projection matrix
   ASPECT_RATIO := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
@@ -349,20 +345,16 @@ main :: () {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render lines
-    /*
     for line, i: x_lines_view {
       draw_line(*x_lines_view[i]);
     }
-    */
     for line, i: y_lines_view {
       print("I: %, line: %\n", i, line);
       draw_line(*y_lines_view[i]);
     }
-    /*
     for line, i: z_lines_view {
       draw_line(*z_lines_view[i]);
     }
-    */
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
