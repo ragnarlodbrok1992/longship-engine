@@ -18,6 +18,18 @@ X_LINE_COLOR : Vector3 = .{1.0, 0.0, 0.0};
 Y_LINE_COLOR : Vector3 = .{0.0, 1.0, 0.0};
 Z_LINE_COLOR : Vector3 = .{0.0, 0.0, 1.0};
 
+CameraControls :: struct {
+  move_input : Vector3;
+  rotate_input : Vector2; // Only rotation around X and Y axis
+}
+
+Camera :: struct {
+  view_matrix := Matrix4_Identity;
+}
+
+CAMERA_CONTROLS : CameraControls;
+MAIN_CAMERA : Camera;
+
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
   #version 460 core
@@ -183,28 +195,35 @@ print_mat4 :: (name: string, mat: Matrix4) {
   print("[%, %, %, %]\n\n", mat._41, mat._42, mat._43, mat._44); 
 }
 
-create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: float) -> Matrix4 {
+create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: float, delta_time: float) -> Matrix4 {
   view_projection_matrix := Matrix4_Identity;
-  view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
 
   // Changing something in view matrix
-  view_matrix._14 = 0.0;
-  view_matrix._24 = 0.0;
-  view_matrix._34 = -100.0;
+  // view_matrix._14 = 0.0;
+  // view_matrix._24 = 0.0; // Going up Y 10 @BUG Y axis goes down right now
+  // view_matrix._34 = -10.0; // Going back Z 100
+
+  MAIN_CAMERA.view_matrix._14 += CAMERA_CONTROLS.move_input.x * delta_time;
+  MAIN_CAMERA.view_matrix._24 += CAMERA_CONTROLS.move_input.y * delta_time;
+  MAIN_CAMERA.view_matrix._34 += CAMERA_CONTROLS.move_input.z * delta_time;
 
   // Rotate view matrix
+  // 
+  euler_angles : Vector3;
+  euler_angles = .{CAMERA_CONTROLS.rotate_input.x * PI / 180, CAMERA_CONTROLS.rotate_input.y * PI / 180, 0.0};
+  view_rotate : Quaternion;
 
   // Construction projection matrix
-  projection_matrix._11 = 1 / (aspect_ratio * tan(fov / 2));
-  projection_matrix._22 = 1 / (tan(fov / 2));
-  projection_matrix._33 = -1 * ((far + near) / (far - near));
+  projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
+  projection_matrix._22 =  1 / (tan(fov / 2));
+  projection_matrix._33 = -1 * ((far + near)     / (far - near));
   projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
   projection_matrix._43 = -1;
 
-  view_projection_matrix = projection_matrix * view_matrix;
+  view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
 
-  print_mat4("View matrix", view_matrix);
+  print_mat4("View matrix", MAIN_CAMERA.view_matrix);
   print_mat4("Projection matrix", projection_matrix);
   print_mat4("View projection matrix", view_projection_matrix);
 
@@ -310,7 +329,6 @@ main :: () {
 
   // Create view projection matrix
   ASPECT_RATIO := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
-  view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0);
 
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -327,6 +345,22 @@ main :: () {
           }
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
+
+          if event.key.keysym.sym == SDLK_a CAMERA_CONTROLS.move_input.x = 0;
+          if event.key.keysym.sym == SDLK_s CAMERA_CONTROLS.move_input.y = 0;
+          if event.key.keysym.sym == SDLK_d CAMERA_CONTROLS.move_input.x = 0;
+          if event.key.keysym.sym == SDLK_q CAMERA_CONTROLS.move_input.z = 0;
+          if event.key.keysym.sym == SDLK_w CAMERA_CONTROLS.move_input.y = 0;
+          if event.key.keysym.sym == SDLK_e CAMERA_CONTROLS.move_input.z = 0;
+
+        case SDL_KEYDOWN;
+
+          if event.key.keysym.sym == SDLK_a CAMERA_CONTROLS.move_input.x = -1;
+          if event.key.keysym.sym == SDLK_s CAMERA_CONTROLS.move_input.y = -1;
+          if event.key.keysym.sym == SDLK_d CAMERA_CONTROLS.move_input.x = 1;
+          if event.key.keysym.sym == SDLK_q CAMERA_CONTROLS.move_input.z = -1;
+          if event.key.keysym.sym == SDLK_w CAMERA_CONTROLS.move_input.y = 1;
+          if event.key.keysym.sym == SDLK_e CAMERA_CONTROLS.move_input.z = 1;
       }
     }
     // End of event loop
@@ -338,6 +372,7 @@ main :: () {
     glUseProgram(program_id);
 
     // Pass view_projection matrix
+    view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0, delta_time);
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
 
     // Clear screen

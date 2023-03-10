@@ -123,7 +123,7 @@ Camera :: struct {
 
   model_translate_vector : Vector3 = .{0.0, 0.0, 0.0}; // Not translating right now anything
   model_scale_vector : Vector3 = .{1.0, 1.0, 1.0}; // Not scaling right now anything
-  model_euler_angles : Vector3 = .{0 * PI / 180, 0 * PI / 180, 0 * PI / 180} ;
+  model_euler_angles : Vector3 = .{1 * PI / 180, 1 * PI / 180, 1 * PI / 180} ;
 
   // view_translate_vector : Vector3;
   // view_rotation_input : Vector2; // I think yaw and pitch - we do not roll here
@@ -677,7 +677,7 @@ create_line_buffers :: (line: *Line) {
 
   glGenBuffers(1, *line.line_vbo_colors);
   glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_colors)), *line.line_data_colors, GL_DYNAMIC_DRAW);
 }
 
 populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
