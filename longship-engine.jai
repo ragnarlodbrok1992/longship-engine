@@ -191,7 +191,7 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   // Changing something in view matrix
   view_matrix._14 = 0.0;
   view_matrix._24 = 0.0;
-  view_matrix._34 = -10.0;
+  view_matrix._34 = -100.0;
 
   // Rotate view matrix
 
@@ -203,7 +203,6 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   projection_matrix._43 = -1;
 
   view_projection_matrix = projection_matrix * view_matrix;
-  // view_projection_matrix = view_matrix * projection_matrix;
 
   print_mat4("View matrix", view_matrix);
   print_mat4("Projection matrix", projection_matrix);
@@ -349,7 +348,6 @@ main :: () {
       draw_line(*x_lines_view[i]);
     }
     for line, i: y_lines_view {
-      print("I: %, line: %\n", i, line);
       draw_line(*y_lines_view[i]);
     }
     for line, i: z_lines_view {
