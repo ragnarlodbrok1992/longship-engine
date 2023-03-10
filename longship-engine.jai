@@ -188,9 +188,26 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   view_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
 
-  view_projection_matrix._14 = 0.0; 
-  view_projection_matrix._24 = 0.0;
-  view_projection_matrix._34 = 0.0;
+  // Changing something in view matrix
+  view_matrix._14 = 0.0;
+  view_matrix._24 = 0.0;
+  view_matrix._34 = -10.0;
+
+  // Rotate view matrix
+
+  // Construction projection matrix
+  projection_matrix._11 = 1 / (aspect_ratio * tan(fov / 2));
+  projection_matrix._22 = 1 / (tan(fov / 2));
+  projection_matrix._33 = -1 * ((far + near) / (far - near));
+  projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
+  projection_matrix._43 = -1;
+
+  view_projection_matrix = projection_matrix * view_matrix;
+  // view_projection_matrix = view_matrix * projection_matrix;
+
+  print_mat4("View matrix", view_matrix);
+  print_mat4("Projection matrix", projection_matrix);
+  print_mat4("View projection matrix", view_projection_matrix);
 
   return view_projection_matrix;
 }
@@ -275,22 +292,26 @@ main :: () {
   line_spacing := 10.0;
 
   line_spacing_start := -50.0;
+  /*
   for line, i: x_lines_view {
     populate_line(*x_lines_view[i], .{-100.0, 0.0, line_spacing_start}, .{100.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
+  */
 
-  line_spacing_start = -50.0;
+  // line_spacing_start = -50.0;
   for line, i: y_lines_view {
     populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start ,100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
+  /*
   line_spacing_start = -50.0;
   for line, i: z_lines_view {
-    populate_line(*z_lines_view[i], .{line_spacing_start ,0.0, -100.0}, .{line_spacing_start ,0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start ,0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
+  */
 
   // Create view projection matrix
   ASPECT_RATIO := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
@@ -328,10 +349,13 @@ main :: () {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render lines
+    /*
     for line, i: x_lines_view {
       draw_line(*x_lines_view[i]);
     }
+    */
     for line, i: y_lines_view {
+      print("I: %, line: %\n", i, line);
       draw_line(*y_lines_view[i]);
     }
     /*
