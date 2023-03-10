@@ -112,23 +112,38 @@ Camera :: struct {
   ROTATION_SPEED :: 0.003;
   ROTATION_SMOOTHING :: 0.3;
   FOV := 45.0; // For now we stick with normal projection - switching to orthogonal after camera will finally work
+  // ASPECT_RATIO :: WINDOW_WIDTH / WINDOW_HEIGHT;
 
-  model := Matrix4_Identity;
+  model_matrix := Matrix4_Identity;
+  model_yaw : Quaternion;
+  model_pitch : Quaternion;
+  model_roll : Quaternion;
+  // model_rotation_quat : Quaternion;
+  model_rotation : Quaternion;
+
   model_translate_vector : Vector3 = .{0.0, 0.0, 0.0}; // Not translating right now anything
   model_scale_vector : Vector3 = .{1.0, 1.0, 1.0}; // Not scaling right now anything
-  model_euler_angles : Vector3;
-  model_rotation_quat : Quaternion;
+  model_euler_angles : Vector3 = .{0 * PI / 180, 0 * PI / 180, 0 * PI / 180} ;
+
+  // view_translate_vector : Vector3;
+  // view_rotation_input : Vector2; // I think yaw and pitch - we do not roll here
+  // view_euler_angles : Vector2; // We are rotating around two axis x and y. We do not roll on z.
+  // view_rotation_quat : Quaternion;
 
   view_matrix := Matrix4_Identity;
-  view_translate_vector : Vector3;
-  view_rotation_input : Vector2; // I think yaw and pitch - we do not roll here
-  view_euler_angles : Vector3;
-  view_rotation_quat : Quaternion;
+  view_yaw : Quaternion;
+  view_pitch : Quaternion;
+  view_roll : Quaternion;
+  view_rotation : Quaternion;
+
+  view_translate_vector : Vector3 = .{0.0, 0.0, -100.0}; // Moving back with z
+  // view_scale_vector : Vector3 = .{
+  view_euler_angles : Vector3 = .{0 * PI / 180, 0 * PI / 180, 0 * PI / 180};
 
   projection_matrix := Matrix4_Identity;
 
   // This matrix goes to shader - it's output from updating camera
-  view_projection_matrix := Matrix4_Identity;
+  model_view_projection_matrix := Matrix4_Identity;
 }
   
 IsoTile :: struct {
@@ -413,15 +428,7 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
-model :: () -> Matrix4 {
-
-}
-
-perspective :: () -> Matrix4 {
-
-}
-
-view :: () -> Matrix4 {
+create_projection_matrix :: () -> Matrix4 {
 
 }
 
@@ -454,19 +461,50 @@ update_camera :: (using camera: *Camera, camera_controls: *CameraControls, delta
   //   b. Create translation
   //   c. Create rotation of objects
 
+  // @NOTE OpenGL tutorial 
+
   // 1a.
-  model._11 = model_scale_vector.x;
-  model._22 = model_scale_vector.y;
-  model._33 = model_scale_vector.z;
+  model_matrix._11 = model_scale_vector.x;
+  model_matrix._22 = model_scale_vector.y;
+  model_matrix._33 = model_scale_vector.z;
 
   // print_mat4("Model", model);
   // 1b. Translation moves object in space - it's different than moving camera away from (0, 0, 0)
   // center of our OpenGL universe
-  model._14 = model_translate_vector.x;
-  model._24 = model_translate_vector.y;
-  model._34 = model_translate_vector.z;
+  model_matrix._14 = model_translate_vector.x;
+  model_matrix._24 = model_translate_vector.y;
+  model_matrix._34 = model_translate_vector.z;
 
-  print_mat4("Model", model);
+  // print_mat4("Model", model);
+  set_from_axis_and_angle(*model_pitch, -1, 0, 0, model_euler_angles.x);
+  set_from_axis_and_angle(*model_yaw, 0, -1, 0, model_euler_angles.y);
+  set_from_axis_and_angle(*model_roll, 0, 0, -1, model_euler_angles.z);
+  
+  model_rotation = model_roll * model_yaw * model_pitch;
+
+  model_matrix = model_matrix * rotation_matrix(Matrix4, model_rotation);
+
+  // print_mat4("Model", model);
+  
+  view_matrix._14 = view_translate_vector.x;
+  view_matrix._24 = view_translate_vector.y;
+  view_matrix._34 = view_translate_vector.z;
+
+  set_from_axis_and_angle(*view_pitch, -1, 0, 0, view_euler_angles.x);
+  set_from_axis_and_angle(*view_yaw, 0, -1, 0, view_euler_angles.y);
+  set_from_axis_and_angle(*view_roll, 0, 0, -1, view_euler_angles.z);
+
+  view_rotation = view_roll * view_yaw * view_pitch;
+
+  view_matrix = view_matrix * rotation_matrix(Matrix4, view_rotation);
+
+  // print_mat4("view", view_matrix);
+
+  // Now we need to generate projection matrix
+  aspect_ratio := WINDOW_WIDTH / WINDOW_HEIGHT;
+  projection_matrix = create_projection_matrix(FOV * PI / 180, cast(float) aspect_ratio, 0.1, 1000.0); // @BUG for fucks sake...
+
+  model_view_projection_matrix = projection_matrix * view_matrix * model_matrix;
 }
 
 // @FIXME 
@@ -886,7 +924,7 @@ main :: () {
     // print("Main camera position: %\n", main_camera);
 
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.model_view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, *main_camera.view_projection_matrix.coef[0][0]);
 
     // End of checking input events
