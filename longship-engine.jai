@@ -258,8 +258,8 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
   projection_matrix._43 = -1;
 
-  view_projection_matrix = projection_matrix * look_at_matrix;
-  // view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
+  // view_projection_matrix = projection_matrix * look_at_matrix;
+  view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
 
   print("xaxis: %\n", xaxis);
   print("yaxis: %\n", yaxis);
@@ -337,19 +337,25 @@ main :: () {
 
   // Create lines (x y and z axis)
   x_lines          := New([21]Line);
+  x_lines_parallel := New([21]Line);
   y_lines          := New([21]Line);
   y_lines_parallel := New([21]Line);
   z_lines          := New([21]Line);
+  z_lines_parallel := New([21]Line);
 
   x_lines_view : []Line;
+  x_lines_parallel_view : []Line;
   y_lines_view : []Line;
   y_lines_parallel_view : []Line;
   z_lines_view : []Line;
+  z_lines_parallel_view : []Line;
 
   x_lines_view = <<x_lines;
+  x_lines_parallel_view = <<x_lines_parallel;
   y_lines_view = <<y_lines;
   y_lines_parallel_view = <<y_lines_parallel;
   z_lines_view = <<z_lines;
+  z_lines_parallel_view = <<z_lines_parallel;
 
   line_spacing := 10.0;
 
@@ -372,8 +378,20 @@ main :: () {
   }
 
   line_spacing_start = -100.0;
+  for line, i: x_lines_parallel_view {
+    populate_line(*x_lines_parallel_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, X_LINE_COLOR, X_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -100.0;
   for line, i: y_lines_parallel_view {
     populate_line(*y_lines_parallel_view[i], .{-100.0, line_spacing_start, 0.0}, .{100.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -100.0;
+  for line, i: z_lines_parallel_view {
+    populate_line(*z_lines_parallel_view[i], .{0.0, -100.0,line_spacing_start}, .{0.0, 100.0,line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
@@ -438,8 +456,14 @@ main :: () {
     for line, i: z_lines_view {
       draw_line(*z_lines_view[i]);
     }
+    for line, i: x_lines_parallel_view {
+      draw_line(*x_lines_parallel_view[i]);
+    }
     for line, i: y_lines_parallel_view {
       draw_line(*y_lines_parallel_view[i]);
+    }
+    for line, i: z_lines_parallel_view {
+      draw_line(*z_lines_parallel_view[i]);
     }
 
     // Swap window - end of drawing stuff
