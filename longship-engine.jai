@@ -198,6 +198,7 @@ print_mat4 :: (name: string, mat: Matrix4) {
 create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: float, delta_time: float) -> Matrix4 {
   view_projection_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
+  look_at_matrix := Matrix4_Identity;
 
   // Changing something in view matrix
   // view_matrix._14 = 0.0;
@@ -207,6 +208,12 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   MAIN_CAMERA.view_matrix._14 += CAMERA_CONTROLS.move_input.x * delta_time;
   MAIN_CAMERA.view_matrix._24 += CAMERA_CONTROLS.move_input.y * delta_time;
   MAIN_CAMERA.view_matrix._34 += CAMERA_CONTROLS.move_input.z * delta_time;
+
+  eye : Vector3 = .{MAIN_CAMERA.view_matrix._14, MAIN_CAMERA.view_matrix._24, MAIN_CAMERA.view_matrix._34};
+  center : Vector3 = .{0.0, 0.0, 0.0};
+  up : Vector3 = .{0.0, 1.0, 0.0};
+
+  // look_at_matrix = make_look_at_matrix(eye, center, up, true);
 
   // Rotate view matrix
   // 
@@ -221,6 +228,7 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
   projection_matrix._43 = -1;
 
+  // view_projection_matrix = projection_matrix * look_at_matrix;
   view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
 
   print_mat4("View matrix", MAIN_CAMERA.view_matrix);
