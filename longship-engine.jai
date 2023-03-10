@@ -216,10 +216,40 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   // look_at_matrix = make_look_at_matrix(eye, center, up, true);
 
   // Rotate view matrix
-  // 
-  euler_angles : Vector3;
-  euler_angles = .{CAMERA_CONTROLS.rotate_input.x * PI / 180, CAMERA_CONTROLS.rotate_input.y * PI / 180, 0.0};
-  view_rotate : Quaternion;
+  // euler_angles : Vector3;
+  // euler_angles = .{CAMERA_CONTROLS.rotate_input.x * PI / 180, CAMERA_CONTROLS.rotate_input.y * PI / 180, 0.0};
+  // view_rotate : Quaternion;
+
+  zaxis : Vector3 = normalize(center - eye);
+  xaxis : Vector3 = normalize(cross(zaxis, up));
+  yaxis : Vector3 = cross(xaxis, zaxis);
+
+  zaxis = -zaxis;
+
+  // Is it column major or row major?
+  // 1s column
+  look_at_matrix._11 = xaxis.x;
+  look_at_matrix._21 = yaxis.x;
+  look_at_matrix._31 = zaxis.x;
+  look_at_matrix._41 = 0;
+
+  // 2nd column
+  look_at_matrix._12 = xaxis.y;
+  look_at_matrix._22 = yaxis.y;
+  look_at_matrix._32 = zaxis.y;
+  look_at_matrix._42 = 0;
+
+  // 3rd column
+  look_at_matrix._13 = xaxis.z;
+  look_at_matrix._23 = yaxis.z;
+  look_at_matrix._33 = zaxis.z;
+  look_at_matrix._43 = 0;
+  
+  // 4th column
+  look_at_matrix._14 = -dot(xaxis, eye);
+  look_at_matrix._24 = -dot(yaxis, eye);
+  look_at_matrix._34 = -dot(zaxis, eye);
+  look_at_matrix._44 = 1;
 
   // Construction projection matrix
   projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
@@ -228,9 +258,12 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
   projection_matrix._43 = -1;
 
-  // view_projection_matrix = projection_matrix * look_at_matrix;
-  view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
+  view_projection_matrix = projection_matrix * look_at_matrix;
+  // view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
 
+  print("xaxis: %\n", xaxis);
+  print("yaxis: %\n", yaxis);
+  print("zaxis: %\n", zaxis);
   print_mat4("View matrix", MAIN_CAMERA.view_matrix);
   print_mat4("Projection matrix", projection_matrix);
   print_mat4("View projection matrix", view_projection_matrix);
