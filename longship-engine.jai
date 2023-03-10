@@ -295,35 +295,44 @@ main :: () {
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
   // Create lines (x y and z axis)
-  x_lines := New([10]Line);
-  y_lines := New([10]Line);
-  z_lines := New([10]Line);
+  x_lines          := New([21]Line);
+  y_lines          := New([21]Line);
+  y_lines_parallel := New([21]Line);
+  z_lines          := New([21]Line);
 
   x_lines_view : []Line;
   y_lines_view : []Line;
+  y_lines_parallel_view : []Line;
   z_lines_view : []Line;
 
   x_lines_view = <<x_lines;
   y_lines_view = <<y_lines;
+  y_lines_parallel_view = <<y_lines_parallel;
   z_lines_view = <<z_lines;
 
   line_spacing := 10.0;
 
-  line_spacing_start := -50.0;
+  line_spacing_start := -100.0;
   for line, i: x_lines_view {
     populate_line(*x_lines_view[i], .{-100.0, 0.0, line_spacing_start}, .{100.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  line_spacing_start = -50.0;
+  line_spacing_start = -100.0;
   for line, i: y_lines_view {
-    populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start ,100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start, 100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  line_spacing_start = -50.0;
+  line_spacing_start = -100.0;
   for line, i: z_lines_view {
-    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start ,0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -100.0;
+  for line, i: y_lines_parallel_view {
+    populate_line(*y_lines_parallel_view[i], .{-100.0, line_spacing_start, 0.0}, .{100.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
@@ -387,6 +396,9 @@ main :: () {
     }
     for line, i: z_lines_view {
       draw_line(*z_lines_view[i]);
+    }
+    for line, i: y_lines_parallel_view {
+      draw_line(*y_lines_parallel_view[i]);
     }
 
     // Swap window - end of drawing stuff
