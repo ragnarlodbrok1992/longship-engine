@@ -301,6 +301,12 @@ building_mvp_matrix :: (delta_time: float) -> Matrix4 {
   near := 0.1;
   far := 1000.0;
 
+  // Ortho
+  left := -10.0;
+  right := 10.0;
+  top := 10.0;
+  bottom := -10.0;
+
   // Build look-at matrix
   // Up-vector (0, 1.0, 0)
   up : Vector3 = .{0.0, 1.0, 0.0};
@@ -330,14 +336,43 @@ building_mvp_matrix :: (delta_time: float) -> Matrix4 {
   look_at_matrix._34 =  dot(f, eye);
 
   // Projection matrix
-  projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
-  projection_matrix._22 =  1 / (tan(fov / 2));
-  projection_matrix._33 = -1 * ((far + near)     / (far - near));
-  projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
-  projection_matrix._43 = -1;
+  // projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
+  // projection_matrix._22 =  1 / (tan(fov / 2));
+  // projection_matrix._33 = -1 * ((far + near)     / (far - near));
+  // projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
+  // projection_matrix._43 = -1;
+
+  tanHalfFovy := tan(fov / 2);
+
+  /*
+  projection_matrix._11 = 1 / (aspect_ratio * tanHalfFovy);
+  projection_matrix._22 = 1 / tanHalfFovy;
+  projection_matrix._33 = far / (near - far);
+  projection_matrix._34 = -1;
+  projection_matrix._43 = - (far * near) / (far - near);
+  projection_matrix._44 = 0;
+  */
+
+  /*
+  projection_matrix._11 = 1 / (aspect_ratio * tanHalfFovy);
+  projection_matrix._22 = 1 /  tanHalfFovy;
+  projection_matrix._33 =    -(far + near) / (far - near);
+  projection_matrix._34 = -1;
+  projection_matrix._43 = (-2 * far * near) / (far - near);
+  projection_matrix._44 = 0;
+  */
+
+  projection_matrix._11 = 2 / (right - left);
+  projection_matrix._22 = 2 / (top - bottom);
+  projection_matrix._33 = -2 / (far - near);
+  projection_matrix._41 = - (right + left) / (right - left);
+  projection_matrix._42 = - (top + bottom) / (top - bottom);
+  projection_matrix._43 = - (far + near) / (far - near);
 
   print_mat4("Look at matrix", look_at_matrix);
+  print_mat4("Projection matrix", projection_matrix);
   mvp_matrix = projection_matrix * look_at_matrix;
+  // mvp_matrix = look_at_matrix * projection_matrix;
 
   return mvp_matrix;
 }
@@ -417,7 +452,7 @@ main :: () {
   x_line_debug := New(Line);
   populate_line(x_line_debug, .{-100.0, 5.0, 0.0}, .{100.0, 5.0, 0.0}, X_LINE_COLOR, X_LINE_COLOR);
   x_line_debug_z_plus := New(Line);
-  populate_line(x_line_debug_z_plus, .{-100.0, 5.0, 5.0}, .{100.0, 5.0, 5.0}, X_LINE_COLOR, X_LINE_COLOR);
+  populate_line(x_line_debug_z_plus, .{-100.0, 5.0, 10.0}, .{100.0, 5.0, 10.0}, X_LINE_COLOR, X_LINE_COLOR);
   x_line_debug_z_minus := New(Line);
   populate_line(x_line_debug_z_minus, .{-100.0, 5.0, -5.0}, .{100.0, 5.0, -5.0}, X_LINE_COLOR, X_LINE_COLOR);
 
@@ -440,7 +475,7 @@ main :: () {
   // X plane lines
   line_spacing_start := -100.0;
   for line, i: x_lines_view {
-    populate_line(*x_lines_view[i], .{-100.0, 0.0, line_spacing_start}, .{100.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
+    populate_line(*x_lines_view[i], .{-100.0, 5.0, line_spacing_start}, .{100.0, 5.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
@@ -530,16 +565,11 @@ main :: () {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render lines
-    draw_line(x_line_debug);
+    // draw_line(x_line_debug);
     // draw_line(x_line_debug_z_plus);
     // draw_line(x_line_debug_z_minus);
 
     
-    /*
-    for line, i: x_lines_view {
-      draw_line(*x_lines_view[i]);
-    }
-    */
     /*
     for line, i: x_lines_parallel_view {
       draw_line(*x_lines_parallel_view[i]);
@@ -550,6 +580,9 @@ main :: () {
     }
     for line, i: y_lines_parallel_view {
       draw_line(*y_lines_parallel_view[i]);
+    }
+    for line, i: x_lines_view {
+      draw_line(*x_lines_view[i]);
     }
     /*
     for line, i: z_lines_view {
