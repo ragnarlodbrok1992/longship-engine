@@ -25,6 +25,7 @@ CameraControls :: struct {
 
 Camera :: struct {
   view_matrix := Matrix4_Identity;
+  eye : Vector3 = .{0.0, 0.0, 0.0};
 }
 
 CAMERA_CONTROLS : CameraControls;
@@ -195,6 +196,11 @@ print_mat4 :: (name: string, mat: Matrix4) {
   print("[%, %, %, %]\n\n", mat._41, mat._42, mat._43, mat._44); 
 }
 
+print_vec3 :: (name: string, vec: Vector3) {
+  print("  [ % ]\n", name);
+  print("[% % %]\n", vec.x, vec.y, vec.z);
+}
+
 create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: float, delta_time: float) -> Matrix4 {
   view_projection_matrix := Matrix4_Identity;
   projection_matrix := Matrix4_Identity;
@@ -209,7 +215,21 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   MAIN_CAMERA.view_matrix._24 += CAMERA_CONTROLS.move_input.y * delta_time;
   MAIN_CAMERA.view_matrix._34 += CAMERA_CONTROLS.move_input.z * delta_time;
 
-  eye : Vector3 = .{MAIN_CAMERA.view_matrix._14, MAIN_CAMERA.view_matrix._24, MAIN_CAMERA.view_matrix._34};
+  /*
+  MAIN_CAMERA.view_matrix._13 += CAMERA_CONTROLS.move_input.x * delta_time;
+  MAIN_CAMERA.view_matrix._23 += CAMERA_CONTROLS.move_input.y * delta_time;
+  MAIN_CAMERA.view_matrix._33 += CAMERA_CONTROLS.move_input.z * delta_time;
+
+  MAIN_CAMERA.view_matrix._12 += CAMERA_CONTROLS.move_input.x * delta_time;
+  MAIN_CAMERA.view_matrix._22 += CAMERA_CONTROLS.move_input.y * delta_time;
+  MAIN_CAMERA.view_matrix._32 += CAMERA_CONTROLS.move_input.z * delta_time;
+  */
+
+  MAIN_CAMERA.eye.x += CAMERA_CONTROLS.move_input.x * delta_time;
+  MAIN_CAMERA.eye.y += CAMERA_CONTROLS.move_input.y * delta_time;
+  MAIN_CAMERA.eye.z += CAMERA_CONTROLS.move_input.z * delta_time;
+
+  eye : Vector3 = .{MAIN_CAMERA.eye.x, MAIN_CAMERA.eye.y, MAIN_CAMERA.eye.z};
   center : Vector3 = .{0.0, 0.0, 0.0};
   up : Vector3 = .{0.0, 1.0, 0.0};
 
@@ -258,17 +278,68 @@ create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: 
   projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
   projection_matrix._43 = -1;
 
-  // view_projection_matrix = projection_matrix * look_at_matrix;
-  view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
+  view_projection_matrix = projection_matrix * look_at_matrix;
+  // view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
+  // view_projection_matrix = inverse(look_at_matrix) * projection_matrix;
 
-  print("xaxis: %\n", xaxis);
-  print("yaxis: %\n", yaxis);
-  print("zaxis: %\n", zaxis);
-  print_mat4("View matrix", MAIN_CAMERA.view_matrix);
-  print_mat4("Projection matrix", projection_matrix);
+  // print_mat4("View matrix", MAIN_CAMERA.view_matrix);
+  // print_mat4("Projection matrix", projection_matrix);
   print_mat4("View projection matrix", view_projection_matrix);
+  // print_mat4("Lookat", look_at_matrix);
 
   return view_projection_matrix;
+}
+
+building_mvp_matrix :: (delta_time: float) -> Matrix4 {
+  mvp_matrix := Matrix4_Identity;
+  look_at_matrix := Matrix4_Identity;
+  projection_matrix := Matrix4_Identity;
+
+  // SOME VALUES FOR NOW
+  aspect_ratio := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
+  fov := 60.0;
+  near := 0.1;
+  far := 1000.0;
+
+  // Build look-at matrix
+  // Up-vector (0, 1.0, 0)
+  up : Vector3 = .{0.0, 1.0, 0.0};
+  center : Vector3 = .{0.0, 0.0, 0.0};
+  eye : Vector3 = .{-10.0, 10.0, 10.0};
+
+  // LookAt RH - maybe use LH if it doesn't work?
+  f : Vector3 = normalize(center - eye);
+  s : Vector3 = normalize(cross(f, up));
+  u : Vector3 = cross(s, f);
+
+  print_vec3("f", f);
+  print_vec3("s", s);
+  print_vec3("u", u);
+
+  look_at_matrix._11 = s.x;
+  look_at_matrix._21 = s.y;
+  look_at_matrix._31 = s.z;
+  look_at_matrix._12 = u.x;
+  look_at_matrix._22 = u.y;
+  look_at_matrix._32 = u.z;
+  look_at_matrix._13 = -f.x;
+  look_at_matrix._23 = -f.y;
+  look_at_matrix._33 = -f.z;
+  look_at_matrix._14 = -dot(s, eye);
+  look_at_matrix._24 = -dot(u, eye);
+  look_at_matrix._34 =  dot(f, eye);
+
+  // Projection matrix
+  projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
+  projection_matrix._22 =  1 / (tan(fov / 2));
+  projection_matrix._33 = -1 * ((far + near)     / (far - near));
+  projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
+  projection_matrix._43 = -1;
+
+  print_mat4("Look at matrix", look_at_matrix);
+  mvp_matrix = projection_matrix * look_at_matrix;
+
+  return mvp_matrix;
 }
 
 main :: () {
@@ -342,6 +413,13 @@ main :: () {
   y_lines_parallel := New([21]Line);
   z_lines          := New([21]Line);
   z_lines_parallel := New([21]Line);
+  
+  x_line_debug := New(Line);
+  populate_line(x_line_debug, .{-100.0, 5.0, 0.0}, .{100.0, 5.0, 0.0}, X_LINE_COLOR, X_LINE_COLOR);
+  x_line_debug_z_plus := New(Line);
+  populate_line(x_line_debug_z_plus, .{-100.0, 5.0, 5.0}, .{100.0, 5.0, 5.0}, X_LINE_COLOR, X_LINE_COLOR);
+  x_line_debug_z_minus := New(Line);
+  populate_line(x_line_debug_z_minus, .{-100.0, 5.0, -5.0}, .{100.0, 5.0, -5.0}, X_LINE_COLOR, X_LINE_COLOR);
 
   x_lines_view : []Line;
   x_lines_parallel_view : []Line;
@@ -359,21 +437,10 @@ main :: () {
 
   line_spacing := 10.0;
 
+  // X plane lines
   line_spacing_start := -100.0;
   for line, i: x_lines_view {
     populate_line(*x_lines_view[i], .{-100.0, 0.0, line_spacing_start}, .{100.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
-    line_spacing_start += line_spacing;
-  }
-
-  line_spacing_start = -100.0;
-  for line, i: y_lines_view {
-    populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start, 100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
-    line_spacing_start += line_spacing;
-  }
-
-  line_spacing_start = -100.0;
-  for line, i: z_lines_view {
-    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
@@ -383,15 +450,29 @@ main :: () {
     line_spacing_start += line_spacing;
   }
 
+  // Y plane lines
+  line_spacing_start = -100.0;
+  for line, i: y_lines_view {
+    populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start, 100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
   line_spacing_start = -100.0;
   for line, i: y_lines_parallel_view {
     populate_line(*y_lines_parallel_view[i], .{-100.0, line_spacing_start, 0.0}, .{100.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
+  // Z plane lines
+  line_spacing_start = -100.0;
+  for line, i: z_lines_view {
+    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
   line_spacing_start = -100.0;
   for line, i: z_lines_parallel_view {
-    populate_line(*z_lines_parallel_view[i], .{0.0, -100.0,line_spacing_start}, .{0.0, 100.0,line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
+    populate_line(*z_lines_parallel_view[i], .{0.0, -100.0, line_spacing_start}, .{0.0, 100.0, line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
@@ -440,31 +521,44 @@ main :: () {
     glUseProgram(program_id);
 
     // Pass view_projection matrix
-    view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0, delta_time);
+    // view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0, delta_time);
+    view_projection_matrix := building_mvp_matrix(delta_time);
+    print_mat4("View projection matrix", view_projection_matrix);
     glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render lines
+    draw_line(x_line_debug);
+    // draw_line(x_line_debug_z_plus);
+    // draw_line(x_line_debug_z_minus);
+
+    
+    /*
     for line, i: x_lines_view {
       draw_line(*x_lines_view[i]);
     }
-    for line, i: y_lines_view {
-      draw_line(*y_lines_view[i]);
-    }
-    for line, i: z_lines_view {
-      draw_line(*z_lines_view[i]);
-    }
+    */
+    /*
     for line, i: x_lines_parallel_view {
       draw_line(*x_lines_parallel_view[i]);
+    }
+    */
+    for line, i: y_lines_view {
+      draw_line(*y_lines_view[i]);
     }
     for line, i: y_lines_parallel_view {
       draw_line(*y_lines_parallel_view[i]);
     }
+    /*
+    for line, i: z_lines_view {
+      draw_line(*z_lines_view[i]);
+    }
     for line, i: z_lines_parallel_view {
       draw_line(*z_lines_parallel_view[i]);
     }
+    */
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
