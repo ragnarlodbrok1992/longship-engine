@@ -14,6 +14,100 @@ WINDOW_TITLE_BAR : *u8 = "Longship Engine";
 WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
+Cube :: struct {
+  vertices_data : [6 * 3 * 6]GLfloat = GLfloat.[
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+
+    -0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5, -0.5,  0.5,
+
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5,  0.5,
+    -0.5,  0.5,  0.5,
+
+     0.5,  0.5,  0.5,
+     0.5,  0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
+
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+    -0.5, -0.5,  0.5,
+    -0.5, -0.5, -0.5,
+
+    -0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+  ];
+  color_data : [6 * 3 * 6]GLfloat = GLfloat.[
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    // Bottom
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+
+    // Top
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+  ];
+
+  vbo_vert : GLuint;
+  vbo_color : GLuint;
+}
+
 Triangle :: struct {
   vertices_data : [9]GLfloat = GLfloat.[-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
   color_data : [9]GLfloat = GLfloat.[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
@@ -149,7 +243,37 @@ render_triangle :: (using triangle: *Triangle) {
   
 }
 
+render_cube :: (using cube: *Cube) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_TRIANGLES, 0, 3 * 6 * 6);
+  
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+  
+}
+
 create_buffers :: (using triangle: *Triangle) {
+  glGenBuffers(1, *vbo_vert);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), vertices_data.data, GL_STATIC_DRAW);
+
+  glGenBuffers(1, *vbo_color);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(color_data)), color_data.data, GL_STATIC_DRAW);
+
+  print("Vbo vert: %\n", vbo_vert);
+  print("Vbo color: %\n", vbo_color);
+}
+
+create_buffers :: (using cube: *Cube) {
   glGenBuffers(1, *vbo_vert);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), vertices_data.data, GL_STATIC_DRAW);
@@ -226,11 +350,19 @@ main :: () {
   matrix_id := glGetUniformLocation(program_id, "MVP");
 
   // Create test triangle
-  test_triangle := New(Triangle);
-  print("Test_triangle %\n", test_triangle);
+  // test_triangle := New(Triangle);
+  // print("Test_triangle %\n", test_triangle);
+
+  test_cube := New(Cube);
+  print("Test_cube: %\n", test_cube);
+  print("Test_cube.vertices_data: %\n", test_cube.vertices_data);
+  print("Test_cube.color_data: %\n", test_cube.color_data);
+  print("Test_cube.vertices_data.count: %\n", test_cube.vertices_data.count);
+  print("Test_cube.color_data.count: %\n", test_cube.color_data.count);
 
   // Create test triangle buffers
-  create_buffers(test_triangle);
+  // create_buffers(test_triangle);
+  create_buffers(test_cube);
   
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -269,7 +401,8 @@ main :: () {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Render test triangle
-    render_triangle(test_triangle);
+    // render_triangle(test_triangle);
+    render_cube(test_cube);
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
