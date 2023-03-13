@@ -127,7 +127,7 @@ VERTEX_SHADER :: #string GLSL
   uniform mat4 MVP;
 
   void main() {
-      gl_Position = vec4(vertexPosition_modelspace, 1);
+      gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -389,13 +389,13 @@ main :: () {
     glUseProgram(program_id);
 
     //MVP matrix
-    // view_projection_matrix := Matrix4_Identity;
+    view_projection_matrix := Matrix4_Identity;
 
-    // view_projection_matrix._14 = 1.0;
-    // view_projection_matrix._24 = 1.0;
-    // view_projection_matrix._34 = -1.0;
+    // view_projection_matrix._14 = 0.0;
+    // view_projection_matrix._24 = 0.0;
+    // view_projection_matrix._34 = 10.0;
 
-    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
+    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
