@@ -559,7 +559,7 @@ main :: () {
     // view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0, delta_time);
     view_projection_matrix := building_mvp_matrix(delta_time);
     print_mat4("View projection matrix", view_projection_matrix);
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
+    glUniformMatrix4fv(matrix_id, 1, GL_TRUE, xx *view_projection_matrix);
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
@@ -570,11 +570,9 @@ main :: () {
     // draw_line(x_line_debug_z_minus);
 
     
-    /*
     for line, i: x_lines_parallel_view {
       draw_line(*x_lines_parallel_view[i]);
     }
-    */
     for line, i: y_lines_view {
       draw_line(*y_lines_view[i]);
     }
@@ -584,14 +582,12 @@ main :: () {
     for line, i: x_lines_view {
       draw_line(*x_lines_view[i]);
     }
-    /*
     for line, i: z_lines_view {
       draw_line(*z_lines_view[i]);
     }
     for line, i: z_lines_parallel_view {
       draw_line(*z_lines_parallel_view[i]);
     }
-    */
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);

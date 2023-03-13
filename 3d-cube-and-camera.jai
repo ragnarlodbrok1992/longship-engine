@@ -6,6 +6,7 @@
 #import "SDL";
 #import "GL";
 
+
 // Engine variables
 QUIT := false;
 MAIN_ENGINE_WINDOW : *void;
@@ -14,8 +15,62 @@ WINDOW_TITLE_BAR : *u8 = "Longship Engine";
 WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
-Camera :: struct {
+CONTROL_CAMERA : bool = true;
 
+X_LINE_COLOR : Vector3 = .{1.0, 0.0, 0.0};
+Y_LINE_COLOR : Vector3 = .{0.0, 1.0, 0.0};
+Z_LINE_COLOR : Vector3 = .{0.0, 0.0, 1.0};
+
+Camera :: struct
+{
+	FLY_SPEED :: 1.0;
+	ROTATION_SPEED :: 0.3;
+	ROTATION_SMOOTHING :: 0.3;
+
+  move_input_keyboard : Vector3;
+  mouse_delta_input : Vector2;
+
+	position : Vector3;
+	euler_angles : Vector3;
+	rotation : Quaternion;
+	rotation_input : Vector2;
+	fov := 60.0;
+	transform := Matrix4_Identity;
+	view_matrix := Matrix4_Identity;
+	projection_matrix := Matrix4_Identity;
+	view_projection_matrix := Matrix4_Identity;
+}
+
+update_flying_camera :: (using camera : *Camera, delta_time : float)
+{
+	move_speed : float;
+  move_input := move_input_keyboard;
+  mouse_delta := mouse_delta_input;
+	if CONTROL_CAMERA {
+		move_speed = FLY_SPEED;
+		move_speed *= delta_time;
+		move_input = rotate (unit_vector (move_input), rotation);
+	}
+	position += move_input * move_speed;
+
+	rotation_input = lerp (rotation_input, mouse_delta, ROTATION_SMOOTHING);
+	delta := rotation_input * ROTATION_SPEED;
+	euler_angles.x += delta.x * PI / 180.0;
+	euler_angles.y += delta.y * PI / 180.0;
+	euler_angles.y = clamp (euler_angles.y, -80.0  * PI / 180.0, 80.0 * PI / 180.0);
+	yaw : Quaternion;
+	// I am not sure why I need to invert the axis of rotation...
+	set_from_axis_and_angle (*yaw, 0, -1, 0, euler_angles.x);
+	pitch : Quaternion;
+	set_from_axis_and_angle (*pitch, -1, 0, 0, euler_angles.y);
+	rotation = yaw * pitch;
+
+	transform = make_translation_matrix4 (position) * rotation_matrix (Matrix4, rotation);
+	view_matrix = inverse (transform);
+	// vx, vy, vw, vh := get_dimensions (g_window, false);
+	aspect_ratio := WINDOW_WIDTH / cast (float) WINDOW_HEIGHT;
+	projection_matrix = make_projection_matrix (fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+	view_projection_matrix = projection_matrix * view_matrix;
 }
 
 Cube :: struct {
@@ -120,6 +175,61 @@ Triangle :: struct {
   vbo_color : GLuint;
 }
 
+Line :: struct {
+  start       : Vector3;
+  end         : Vector3;
+  start_color : Vector3;
+  end_color   : Vector3;
+
+  line_vbo_vertex : GLuint;
+  line_vbo_colors : GLuint;
+
+  line_data_vertex : [2]Vector3;
+  line_data_colors : [2]Vector3;
+}
+
+create_line_buffers :: (line: *Line) {
+
+  glGenBuffers(1, *line.line_vbo_vertex);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+
+  glGenBuffers(1, *line.line_vbo_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_colors)), *line.line_data_colors, GL_DYNAMIC_DRAW);
+}
+
+populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
+  line.start       = start;
+  line.end         = end;
+  line.start_color = start_color;
+  line.end_color   = end_color;
+
+  line.line_data_vertex[0] = start;
+  line.line_data_vertex[1] = end;
+
+  line.line_data_colors[0] = start_color;
+  line.line_data_colors[1] = end_color;
+
+  create_line_buffers(line);
+}
+
+draw_line :: (line: *Line) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_LINES, 0, 2);
+  
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+}
+
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
   #version 460 core
@@ -128,12 +238,10 @@ VERTEX_SHADER :: #string GLSL
 
   out vec3 fragmentColor;
   
-  uniform mat4 model;
-  uniform mat4 view;
-  uniform mat4 projection;
+  uniform mat4 u_view_projection;
 
   void main() {
-      gl_Position = projection * view * model * vec4(vertexPosition_modelspace, 1);
+      gl_Position = u_view_projection * vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -292,6 +400,7 @@ create_buffers :: (using cube: *Cube) {
   print("Vbo color: %\n", vbo_color);
 }
 
+
 main :: () {
   print("Longship engine - CUBE test.\n");
 
@@ -337,6 +446,9 @@ main :: () {
   print("GL Vendor = %\n", to_string(glGetString(GL_VENDOR)));
   print("GL Version = %\n", to_string(glGetString(GL_VERSION)));
 
+  // Setting up OpenGL
+  glEnable(GL_DEPTH_TEST);
+
   // Defering stuff
   defer SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
   defer SDL_Quit();
@@ -353,25 +465,91 @@ main :: () {
   program_id := load_shaders();
 
   // Get uniform location
-  // matrix_id := glGetUniformLocation(program_id, "MVP");
-  model_matrix_id := glGetUniformLocation(program_id, "model");
-  view_matrix_id := glGetUniformLocation(program_id, "view");
-  projection_matrix_id := glGetUniformLocation(program_id, "projection");
+  view_projection_matrix_id := glGetUniformLocation(program_id, "u_view_projection");
 
-  // Create test triangle
-  // test_triangle := New(Triangle);
-  // print("Test_triangle %\n", test_triangle);
+  // Create camera
+  flying_camera : Camera;
+  space_pushed := false;
+  mouse_delta : Vector2;
+
+	flying_camera.position = xyz (1, 1.3, 2.3);
+	flying_camera.euler_angles.x = 0 * PI / 180.0;
+	flying_camera.euler_angles.y = 0 * PI / 180.0;
 
   test_cube := New(Cube);
-  print("Test_cube: %\n", test_cube);
-  print("Test_cube.vertices_data: %\n", test_cube.vertices_data);
-  print("Test_cube.color_data: %\n", test_cube.color_data);
-  print("Test_cube.vertices_data.count: %\n", test_cube.vertices_data.count);
-  print("Test_cube.color_data.count: %\n", test_cube.color_data.count);
 
   // Create test triangle buffers
-  // create_buffers(test_triangle);
   create_buffers(test_cube);
+
+  // Create lines (x y and z axis)
+  x_lines          := New([21]Line);
+  x_lines_parallel := New([21]Line);
+  y_lines          := New([21]Line);
+  y_lines_parallel := New([21]Line);
+  z_lines          := New([21]Line);
+  z_lines_parallel := New([21]Line);
+  
+  x_line_debug := New(Line);
+  populate_line(x_line_debug, .{-100.0, 5.0, 0.0}, .{100.0, 5.0, 0.0}, X_LINE_COLOR, X_LINE_COLOR);
+  x_line_debug_z_plus := New(Line);
+  populate_line(x_line_debug_z_plus, .{-100.0, 5.0, 10.0}, .{100.0, 5.0, 10.0}, X_LINE_COLOR, X_LINE_COLOR);
+  x_line_debug_z_minus := New(Line);
+  populate_line(x_line_debug_z_minus, .{-100.0, 5.0, -5.0}, .{100.0, 5.0, -5.0}, X_LINE_COLOR, X_LINE_COLOR);
+
+  x_lines_view : []Line;
+  x_lines_parallel_view : []Line;
+  y_lines_view : []Line;
+  y_lines_parallel_view : []Line;
+  z_lines_view : []Line;
+  z_lines_parallel_view : []Line;
+
+  x_lines_view = <<x_lines;
+  x_lines_parallel_view = <<x_lines_parallel;
+  y_lines_view = <<y_lines;
+  y_lines_parallel_view = <<y_lines_parallel;
+  z_lines_view = <<z_lines;
+  z_lines_parallel_view = <<z_lines_parallel;
+
+  line_spacing := 1.0;
+
+  // X plane lines
+  line_spacing_start := -10.0;
+  for line, i: x_lines_view {
+    populate_line(*x_lines_view[i], .{-10.0, 0.0, line_spacing_start}, .{10.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -10.0;
+  for line, i: x_lines_parallel_view {
+    populate_line(*x_lines_parallel_view[i], .{line_spacing_start, 0.0, -10.0}, .{line_spacing_start, 0.0, 10.0}, X_LINE_COLOR, X_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  // Y plane lines
+  line_spacing_start = -10.0;
+  for line, i: y_lines_view {
+    populate_line(*y_lines_view[i], .{line_spacing_start, -10.0, 0.0}, .{line_spacing_start, 10.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -10.0;
+  for line, i: y_lines_parallel_view {
+    populate_line(*y_lines_parallel_view[i], .{-10.0, line_spacing_start, 0.0}, .{10.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  // Z plane lines
+  line_spacing_start = -10.0;
+  for line, i: z_lines_view {
+    populate_line(*z_lines_view[i], .{0.0, line_spacing_start, -10.0}, .{0.0, line_spacing_start, 10.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
+
+  line_spacing_start = -10.0;
+  for line, i: z_lines_parallel_view {
+    populate_line(*z_lines_parallel_view[i], .{0.0, -10.0, line_spacing_start}, .{0.0, 10.0, line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
+    line_spacing_start += line_spacing;
+  }
   
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -386,10 +564,42 @@ main :: () {
             WINDOW_WIDTH = event.window.data1;
             WINDOW_HEIGHT = event.window.data2;
           }
+        case SDL_MOUSEMOTION;
+          if space_pushed {
+            mouse_delta_x = event.motion.xrel;
+            mouse_delta_y = event.motion.yrel;
+          }
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
+
+          if event.key.keysym.sym == SDLK_a then flying_camera.move_input_keyboard.x = 0.0;
+          if event.key.keysym.sym == SDLK_d then flying_camera.move_input_keyboard.x = 0.0;
+          if event.key.keysym.sym == SDLK_s then flying_camera.move_input_keyboard.y = 0.0;
+          if event.key.keysym.sym == SDLK_w then flying_camera.move_input_keyboard.y = 0.0;
+          if event.key.keysym.sym == SDLK_q then flying_camera.move_input_keyboard.z = 0.0;
+          if event.key.keysym.sym == SDLK_e then flying_camera.move_input_keyboard.z = 0.0;
+
+          if event.key.keysym.sym == SDLK_SPACE {
+            space_pushed = false;
+            mouse_delta_x = 0;
+            mouse_delta_y = 0;
+          }
+
+        case SDL_KEYDOWN;
+          if event.key.keysym.sym == SDLK_a then flying_camera.move_input_keyboard.x = -1.0;
+          if event.key.keysym.sym == SDLK_d then flying_camera.move_input_keyboard.x = 1.0;
+          if event.key.keysym.sym == SDLK_s then flying_camera.move_input_keyboard.y = -1.0;
+          if event.key.keysym.sym == SDLK_w then flying_camera.move_input_keyboard.y = 1.0;
+          if event.key.keysym.sym == SDLK_q then flying_camera.move_input_keyboard.z = -1.0;
+          if event.key.keysym.sym == SDLK_e then flying_camera.move_input_keyboard.z = 1.0;
+
+          if event.key.keysym.sym == SDLK_SPACE space_pushed = true;
       }
+
     }
+    // Mouse
+    mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y);
+    // print("Mouse delta: %\n", mouse_delta);
 
     // Beggining of simulation/rendering loop
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
@@ -397,26 +607,36 @@ main :: () {
     // Shader program
     glUseProgram(program_id);
 
-    //MVP matrix
-    // view_projection_matrix := Matrix4_Identity;
-    model_matrix := Matrix4_Identity;
-    view_matrix := Matrix4_Identity;
-    projection_matrix := Matrix4_Identity;
+    // MVP matrix
+    // put view_projection_matrix from flying_camera here
+    flying_camera.mouse_delta_input = mouse_delta;
+    update_flying_camera(*flying_camera, delta_time);
 
-    // view_projection_matrix._14 = 0.0;
-    // view_projection_matrix._24 = 0.0;
-    // view_projection_matrix._34 = 10.0;
-
-    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
-    glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, xx *model_matrix);
-    glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, xx *view_matrix);
-    glUniformMatrix4fv(projection_matrix_id, 1, GL_FALSE, xx *projection_matrix);
+    glUniformMatrix4fv(view_projection_matrix_id, 1, GL_TRUE, xx *flying_camera.view_projection_matrix.coef[0][0]);
 
     // Clear screen
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render test triangle
-    // render_triangle(test_triangle);
+    for line, i: x_lines_parallel_view {
+      draw_line(*x_lines_parallel_view[i]);
+    }
+    for line, i: y_lines_view {
+      draw_line(*y_lines_view[i]);
+    }
+    for line, i: y_lines_parallel_view {
+      draw_line(*y_lines_parallel_view[i]);
+    }
+    for line, i: x_lines_view {
+      draw_line(*x_lines_view[i]);
+    }
+    for line, i: z_lines_view {
+      draw_line(*z_lines_view[i]);
+    }
+    for line, i: z_lines_parallel_view {
+      draw_line(*z_lines_parallel_view[i]);
+    }
+
     render_cube(test_cube);
 
     // Swap window - end of drawing stuff

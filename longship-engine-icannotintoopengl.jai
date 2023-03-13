@@ -985,7 +985,8 @@ main :: () {
     // print("Main camera position: %\n", main_camera);
 
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *mvp_matrix);
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.model_view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
+    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *main_camera.model_view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
+    glUniformMatrix4fv(matrix_id, 1, GL_TRUE, xx *main_camera.model_view_projection_matrix); // @FIXME mega bug - something is drawing but I don't know what and why
     // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, *main_camera.view_projection_matrix.coef[0][0]);
 
     // End of checking input events
