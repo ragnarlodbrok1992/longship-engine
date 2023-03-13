@@ -15,8 +15,8 @@ WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
 Triangle :: struct {
-  vertices_data : []GLfloat = .[-0.5, -0.5, 0.0, 0.0, 0.5, 0.0, 0.5, -0.5, 0.0];
-  color_data : []GLfloat = .[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+  vertices_data : [9]GLfloat = GLfloat.[-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
+  color_data : [9]GLfloat = GLfloat.[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
 
   vbo_vert : GLuint;
   vbo_color : GLuint;
@@ -33,7 +33,7 @@ VERTEX_SHADER :: #string GLSL
   uniform mat4 MVP;
 
   void main() {
-      gl_Position = vertexPosition_modelspace;
+      gl_Position = vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -152,11 +152,11 @@ render_triangle :: (using triangle: *Triangle) {
 create_buffers :: (using triangle: *Triangle) {
   glGenBuffers(1, *vbo_vert);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), *vertices_data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), vertices_data.data, GL_STATIC_DRAW);
 
   glGenBuffers(1, *vbo_color);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(color_data)), *color_data, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(color_data)), color_data.data, GL_STATIC_DRAW);
 
   print("Vbo vert: %\n", vbo_vert);
   print("Vbo color: %\n", vbo_color);
@@ -257,13 +257,13 @@ main :: () {
     glUseProgram(program_id);
 
     //MVP matrix
-    view_projection_matrix := Matrix4_Identity;
+    // view_projection_matrix := Matrix4_Identity;
 
-    view_projection_matrix._14 = 1.0;
-    view_projection_matrix._24 = 1.0;
-    view_projection_matrix._34 = -1.0;
+    // view_projection_matrix._14 = 1.0;
+    // view_projection_matrix._24 = 1.0;
+    // view_projection_matrix._34 = -1.0;
 
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
+    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
