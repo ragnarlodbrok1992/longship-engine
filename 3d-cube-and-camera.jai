@@ -14,6 +14,10 @@ WINDOW_TITLE_BAR : *u8 = "Longship Engine";
 WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
+Camera :: struct {
+
+}
+
 Cube :: struct {
   vertices_data : [6 * 3 * 6]GLfloat = GLfloat.[
     -0.5, -0.5, -0.5,
@@ -124,10 +128,12 @@ VERTEX_SHADER :: #string GLSL
 
   out vec3 fragmentColor;
   
-  uniform mat4 MVP;
+  uniform mat4 model;
+  uniform mat4 view;
+  uniform mat4 projection;
 
   void main() {
-      gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
+      gl_Position = projection * view * model * vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -347,7 +353,10 @@ main :: () {
   program_id := load_shaders();
 
   // Get uniform location
-  matrix_id := glGetUniformLocation(program_id, "MVP");
+  // matrix_id := glGetUniformLocation(program_id, "MVP");
+  model_matrix_id := glGetUniformLocation(program_id, "model");
+  view_matrix_id := glGetUniformLocation(program_id, "view");
+  projection_matrix_id := glGetUniformLocation(program_id, "projection");
 
   // Create test triangle
   // test_triangle := New(Triangle);
@@ -389,13 +398,19 @@ main :: () {
     glUseProgram(program_id);
 
     //MVP matrix
-    view_projection_matrix := Matrix4_Identity;
+    // view_projection_matrix := Matrix4_Identity;
+    model_matrix := Matrix4_Identity;
+    view_matrix := Matrix4_Identity;
+    projection_matrix := Matrix4_Identity;
 
     // view_projection_matrix._14 = 0.0;
     // view_projection_matrix._24 = 0.0;
     // view_projection_matrix._34 = 10.0;
 
-    glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
+    // glUniformMatrix4fv(matrix_id, 1, GL_FALSE, xx *view_projection_matrix);
+    glUniformMatrix4fv(model_matrix_id, 1, GL_FALSE, xx *model_matrix);
+    glUniformMatrix4fv(view_matrix_id, 1, GL_FALSE, xx *view_matrix);
+    glUniformMatrix4fv(projection_matrix_id, 1, GL_FALSE, xx *projection_matrix);
 
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT);
