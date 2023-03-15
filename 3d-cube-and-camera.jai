@@ -92,10 +92,67 @@ populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Vector3, outline_color
   half_tile_height := ISO_TILE_HEIGHT / 2.0;
   
   // -x - left, x - right, -z - top, +z - bottom
-  iso_tile_nw := {center_pos.x - half_tile_width, 0.0, center_pos.z - half_tile_height};
-  iso_tile_ne := {center_pos.x + half_tile_width, 0.0, center_pos.z - half_tile_height};
-  iso_tile_se := {center_pos.x - half_tile_width, 0.0, center_pos.z + half_tile_height};
-  iso_tile_sw := {center_pos.x + half_tile_width, 0.0, center_pos.z + half_tile_height};
+  iso_tile_nw : Vector3 = .{center_pos.x - half_tile_width, 0.0, center_pos.z - half_tile_height};
+  iso_tile_ne : Vector3 = .{center_pos.x + half_tile_width, 0.0, center_pos.z - half_tile_height};
+  iso_tile_se : Vector3 = .{center_pos.x - half_tile_width, 0.0, center_pos.z + half_tile_height};
+  iso_tile_sw : Vector3 = .{center_pos.x + half_tile_width, 0.0, center_pos.z + half_tile_height};
+
+  print("NW: %, NE: %, SE: %, SW: %\n", iso_tile_nw, iso_tile_ne, iso_tile_se, iso_tile_sw);
+
+  // Populate data
+  iso_tile.vertex_buffer_vertices_data[0]  = iso_tile_nw.x;
+  iso_tile.vertex_buffer_vertices_data[1]  = iso_tile_nw.y;
+  iso_tile.vertex_buffer_vertices_data[2]  = iso_tile_nw.z;
+  iso_tile.vertex_buffer_vertices_data[3]  = iso_tile_sw.x;
+  iso_tile.vertex_buffer_vertices_data[4]  = iso_tile_sw.y;
+  iso_tile.vertex_buffer_vertices_data[5]  = iso_tile_sw.z;
+  iso_tile.vertex_buffer_vertices_data[6]  = iso_tile_ne.x;
+  iso_tile.vertex_buffer_vertices_data[7]  = iso_tile_ne.y;
+  iso_tile.vertex_buffer_vertices_data[8]  = iso_tile_ne.z;
+  iso_tile.vertex_buffer_vertices_data[9]  = iso_tile_se.x;
+  iso_tile.vertex_buffer_vertices_data[10] = iso_tile_se.y;
+  iso_tile.vertex_buffer_vertices_data[11] = iso_tile_se.z;
+
+  iso_tile.vertex_buffer_colors_data[0]  = color.r;
+  iso_tile.vertex_buffer_colors_data[1]  = color.g;
+  iso_tile.vertex_buffer_colors_data[2]  = color.b;
+  iso_tile.vertex_buffer_colors_data[3]  = color.r;
+  iso_tile.vertex_buffer_colors_data[4]  = color.g;
+  iso_tile.vertex_buffer_colors_data[5]  = color.b;
+  iso_tile.vertex_buffer_colors_data[6]  = color.r;
+  iso_tile.vertex_buffer_colors_data[7]  = color.g;
+  iso_tile.vertex_buffer_colors_data[8]  = color.b;
+  iso_tile.vertex_buffer_colors_data[9]  = color.r;
+  iso_tile.vertex_buffer_colors_data[10] = color.g;
+  iso_tile.vertex_buffer_colors_data[11] = color.b;
+
+  // Line vertices
+  iso_tile.line_buffer_vertices_data[0]  = iso_tile_nw.x;
+  iso_tile.line_buffer_vertices_data[1]  = iso_tile_nw.y;
+  iso_tile.line_buffer_vertices_data[2]  = iso_tile_nw.z;
+  iso_tile.line_buffer_vertices_data[3]  = iso_tile_ne.x;
+  iso_tile.line_buffer_vertices_data[4]  = iso_tile_ne.y;
+  iso_tile.line_buffer_vertices_data[5]  = iso_tile_ne.z;
+  iso_tile.line_buffer_vertices_data[6]  = iso_tile_se.x;
+  iso_tile.line_buffer_vertices_data[7]  = iso_tile_se.y;
+  iso_tile.line_buffer_vertices_data[8]  = iso_tile_se.z;
+  iso_tile.line_buffer_vertices_data[9]  = iso_tile_sw.x;
+  iso_tile.line_buffer_vertices_data[10] = iso_tile_sw.y;
+  iso_tile.line_buffer_vertices_data[11] = iso_tile_sw.z;
+
+  // Line colors
+  iso_tile.line_buffer_colors_data[0]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[1]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[2]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[3]  = 1.0;
+  iso_tile.line_buffer_colors_data[4]  = 1.0;
+  iso_tile.line_buffer_colors_data[5]  = 1.0;
+  iso_tile.line_buffer_colors_data[6]  = 1.0;
+  iso_tile.line_buffer_colors_data[7]  = 1.0;
+  iso_tile.line_buffer_colors_data[8]  = 1.0;
+  iso_tile.line_buffer_colors_data[9]  = 1.0;
+  iso_tile.line_buffer_colors_data[10] = 1.0;
+  iso_tile.line_buffer_colors_data[11] = 1.0;
 
   create_iso_tile_buffers(iso_tile);
 }
@@ -165,8 +222,9 @@ Camera :: struct
 update_flying_camera :: (using camera : *Camera, delta_time : float)
 {
 	move_speed : float;
-  move_input := move_input_keyboard;
-  mouse_delta := mouse_delta_input;
+        move_input := move_input_keyboard;
+        mouse_delta := mouse_delta_input;
+
 	if CONTROL_CAMERA {
 		move_speed = FLY_SPEED;
 		move_speed *= delta_time;
@@ -593,9 +651,9 @@ main :: () {
   space_pushed := false;
   mouse_delta : Vector2;
 
-	flying_camera.position = xyz (1, 1.3, 2.3);
-	flying_camera.euler_angles.x = 0 * PI / 180.0;
-	flying_camera.euler_angles.y = 0 * PI / 180.0;
+  flying_camera.position = xyz (1, 1.3, 2.3);
+  flying_camera.euler_angles.x = 0 * PI / 180.0;
+  flying_camera.euler_angles.y = 0 * PI / 180.0;
 
   test_cube := New(Cube);
 
@@ -671,6 +729,16 @@ main :: () {
     populate_line(*z_lines_parallel_view[i], .{0.0, -10.0, line_spacing_start}, .{0.0, 10.0, line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
+
+  // Create test iso tiles
+  test_iso_tile := New(IsoTile);
+
+  print("Test iso tile: %\n", test_iso_tile);
+  print("Test iso tile dereference: %\n", <<test_iso_tile);
+
+  populate_iso_tile(test_iso_tile, 0, .{0.3, 0.4, 0.5}, .{1.0, 1.0, 1.0}, .{2.0, 0.0, 0.0});
+
+  print("Test iso tile dereference: %\n", <<test_iso_tile);
   
   while !QUIT {
     frame_start := current_time_monotonic();
