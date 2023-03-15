@@ -28,6 +28,12 @@ ISO_TILE_HEIGHT := 1.0;
 ISO_TILESET_X := -500.0;
 ISO_TILESET_Y := -500.0;
 
+Color :: struct {
+  r : float;
+  g : float;
+  b : float;
+}
+
 IsoTile :: struct {
   // Assumptions
   // Isotiles are put on Y = 0.0 plane
@@ -87,7 +93,7 @@ create_iso_tile_buffers :: (iso_tile: *IsoTile) {
   glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.line_buffer_colors_data)), *iso_tile.line_buffer_colors_data, GL_STATIC_DRAW);
 }
 
-populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Vector3, outline_color: Vector3, center_pos: Vector3) {
+populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Color, outline_color: Color, center_pos: Vector3) {
   half_tile_width := ISO_TILE_WIDTH / 2.0;
   half_tile_height := ISO_TILE_HEIGHT / 2.0;
   
@@ -144,15 +150,15 @@ populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Vector3, outline_color
   iso_tile.line_buffer_colors_data[0]  = outline_color.r;
   iso_tile.line_buffer_colors_data[1]  = outline_color.g;
   iso_tile.line_buffer_colors_data[2]  = outline_color.b;
-  iso_tile.line_buffer_colors_data[3]  = 1.0;
-  iso_tile.line_buffer_colors_data[4]  = 1.0;
-  iso_tile.line_buffer_colors_data[5]  = 1.0;
-  iso_tile.line_buffer_colors_data[6]  = 1.0;
-  iso_tile.line_buffer_colors_data[7]  = 1.0;
-  iso_tile.line_buffer_colors_data[8]  = 1.0;
-  iso_tile.line_buffer_colors_data[9]  = 1.0;
-  iso_tile.line_buffer_colors_data[10] = 1.0;
-  iso_tile.line_buffer_colors_data[11] = 1.0;
+  iso_tile.line_buffer_colors_data[3]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[4]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[5]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[6]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[7]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[8]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[9]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[10] = outline_color.g;
+  iso_tile.line_buffer_colors_data[11] = outline_color.b;
 
   create_iso_tile_buffers(iso_tile);
 }
@@ -826,7 +832,11 @@ main :: () {
       draw_line(*z_lines_parallel_view[i]);
     }
 
+    // Test cube render
     render_cube(test_cube);
+
+    // Test isotile render
+    render_iso_tile(test_iso_tile);
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
