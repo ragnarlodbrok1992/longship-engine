@@ -109,15 +109,18 @@ populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Color, outline_color: 
   iso_tile.vertex_buffer_vertices_data[0]  = iso_tile_nw.x;
   iso_tile.vertex_buffer_vertices_data[1]  = iso_tile_nw.y;
   iso_tile.vertex_buffer_vertices_data[2]  = iso_tile_nw.z;
-  iso_tile.vertex_buffer_vertices_data[3]  = iso_tile_sw.x;
-  iso_tile.vertex_buffer_vertices_data[4]  = iso_tile_sw.y;
-  iso_tile.vertex_buffer_vertices_data[5]  = iso_tile_sw.z;
-  iso_tile.vertex_buffer_vertices_data[6]  = iso_tile_ne.x;
-  iso_tile.vertex_buffer_vertices_data[7]  = iso_tile_ne.y;
-  iso_tile.vertex_buffer_vertices_data[8]  = iso_tile_ne.z;
-  iso_tile.vertex_buffer_vertices_data[9]  = iso_tile_se.x;
-  iso_tile.vertex_buffer_vertices_data[10] = iso_tile_se.y;
-  iso_tile.vertex_buffer_vertices_data[11] = iso_tile_se.z;
+
+  iso_tile.vertex_buffer_vertices_data[3]  = iso_tile_ne.x;
+  iso_tile.vertex_buffer_vertices_data[4]  = iso_tile_ne.y;
+  iso_tile.vertex_buffer_vertices_data[5]  = iso_tile_ne.z;
+
+  iso_tile.vertex_buffer_vertices_data[6]  = iso_tile_se.x;
+  iso_tile.vertex_buffer_vertices_data[7]  = iso_tile_se.y;
+  iso_tile.vertex_buffer_vertices_data[8]  = iso_tile_se.z;
+
+  iso_tile.vertex_buffer_vertices_data[9]  = iso_tile_sw.x;
+  iso_tile.vertex_buffer_vertices_data[10] = iso_tile_sw.y;
+  iso_tile.vertex_buffer_vertices_data[11] = iso_tile_sw.z;
 
   iso_tile.vertex_buffer_colors_data[0]  = color.r;
   iso_tile.vertex_buffer_colors_data[1]  = color.g;
@@ -136,15 +139,18 @@ populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Color, outline_color: 
   iso_tile.line_buffer_vertices_data[0]  = iso_tile_nw.x;
   iso_tile.line_buffer_vertices_data[1]  = iso_tile_nw.y;
   iso_tile.line_buffer_vertices_data[2]  = iso_tile_nw.z;
+
   iso_tile.line_buffer_vertices_data[3]  = iso_tile_ne.x;
   iso_tile.line_buffer_vertices_data[4]  = iso_tile_ne.y;
   iso_tile.line_buffer_vertices_data[5]  = iso_tile_ne.z;
-  iso_tile.line_buffer_vertices_data[6]  = iso_tile_se.x;
-  iso_tile.line_buffer_vertices_data[7]  = iso_tile_se.y;
-  iso_tile.line_buffer_vertices_data[8]  = iso_tile_se.z;
-  iso_tile.line_buffer_vertices_data[9]  = iso_tile_sw.x;
-  iso_tile.line_buffer_vertices_data[10] = iso_tile_sw.y;
-  iso_tile.line_buffer_vertices_data[11] = iso_tile_sw.z;
+
+  iso_tile.line_buffer_vertices_data[6]  = iso_tile_sw.x;
+  iso_tile.line_buffer_vertices_data[7]  = iso_tile_sw.y;
+  iso_tile.line_buffer_vertices_data[8]  = iso_tile_sw.z;
+
+  iso_tile.line_buffer_vertices_data[9]  = iso_tile_se.x;
+  iso_tile.line_buffer_vertices_data[10] = iso_tile_se.y;
+  iso_tile.line_buffer_vertices_data[11] = iso_tile_se.z;
 
   // Line colors
   iso_tile.line_buffer_colors_data[0]  = outline_color.r;
