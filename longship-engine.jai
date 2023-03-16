@@ -6,6 +6,7 @@
 #import "SDL";
 #import "GL";
 
+
 // Engine variables
 QUIT := false;
 MAIN_ENGINE_WINDOW : *void;
@@ -14,22 +15,411 @@ WINDOW_TITLE_BAR : *u8 = "Longship Engine";
 WINDOW_WIDTH : s32 = 1024;
 WINDOW_HEIGHT : s32 = 768;
 
+CONTROL_CAMERA : bool = true;
+
 X_LINE_COLOR : Vector3 = .{1.0, 0.0, 0.0};
 Y_LINE_COLOR : Vector3 = .{0.0, 1.0, 0.0};
 Z_LINE_COLOR : Vector3 = .{0.0, 0.0, 1.0};
 
-CameraControls :: struct {
-  move_input : Vector3;
-  rotate_input : Vector2; // Only rotation around X and Y axis
+ISO_TILESET_WIDTH := 100;
+ISO_TILESET_HEIGHT := 100;
+ISO_TILE_WIDTH := 1.0;
+ISO_TILE_HEIGHT := 1.0;
+ISO_TILESET_X := -50.0;
+ISO_TILESET_Z := -50.0;
+
+Color :: struct {
+  r : float;
+  g : float;
+  b : float;
 }
 
-Camera :: struct {
-  view_matrix := Matrix4_Identity;
-  eye : Vector3 = .{0.0, 0.0, 0.0};
+IsoTile :: struct {
+  // Assumptions
+  // Isotiles are put on Y = 0.0 plane
+  id : int;
+
+  // Local data
+  // @NOTE ragnar: In IsoTile we have a concept of NW/NE/SE/SW coordinates
+  // from world coordinates North East South West.
+  // We are not keeping this data alone, it's kept inside vertex vertices data buffers.
+  // Taken from earlier development we are using this map:
+  // [0]  = iso_tile.nw.x;
+  // [1]  = iso_tile.nw.y;
+  // [2]  = iso_tile.nw.z;
+  // [3]  = iso_tile.sw.x;
+  // [4]  = iso_tile.sw.y;
+  // [5]  = iso_tile.sw.z;
+  // [6]  = iso_tile.ne.x;
+  // [7]  = iso_tile.ne.y;
+  // [8]  = iso_tile.ne.z;
+  // [9]  = iso_tile.se.x;
+  // [10] = iso_tile.se.y;
+  // [11] = iso_tile.se.z;
+
+  // Same stuff goes for color data and for line that wraps around whole isotile
+
+  vertex_buffer_vertices_data : [12]GLfloat;
+  vertex_buffer_colors_data   : [12]GLfloat;
+  line_buffer_colors_data     : [12]GLfloat;
+  line_buffer_vertices_data   : [12]GLfloat;
+
+  // OpenGL bindings
+  vertex_buffer_vertices : GLuint;
+  vertex_buffer_colors   : GLuint;
+  line_buffer_vertices   : GLuint;
+  line_buffer_colors     : GLuint;
 }
 
-CAMERA_CONTROLS : CameraControls;
-MAIN_CAMERA : Camera;
+create_iso_tile_buffers :: (iso_tile: *IsoTile) {
+  // REAL BUFFERS
+  glGenBuffers(1, *iso_tile.vertex_buffer_vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_vertices_data)), *iso_tile.vertex_buffer_vertices_data, GL_STATIC_DRAW);
+
+  // REAL BUFFERS
+  glGenBuffers(1, *iso_tile.vertex_buffer_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.vertex_buffer_colors_data)), *iso_tile.vertex_buffer_colors_data, GL_STATIC_DRAW);
+
+  // Line buffer - vertices
+  glGenBuffers(1, *iso_tile.line_buffer_vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_vertices);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.line_buffer_vertices_data)), *iso_tile.line_buffer_vertices_data, GL_STATIC_DRAW);
+
+  // Line buffers - colors
+  glGenBuffers(1, *iso_tile.line_buffer_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(iso_tile.line_buffer_colors_data)), *iso_tile.line_buffer_colors_data, GL_STATIC_DRAW);
+}
+
+populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Color, outline_color: Color, center_pos: Vector3) {
+  half_tile_width := ISO_TILE_WIDTH / 2.0;
+  half_tile_height := ISO_TILE_HEIGHT / 2.0;
+  
+  // -x - left, x - right, -z - top, +z - bottom
+  iso_tile_nw : Vector3 = .{center_pos.x - half_tile_width, 0.0, center_pos.z - half_tile_height};
+  iso_tile_ne : Vector3 = .{center_pos.x + half_tile_width, 0.0, center_pos.z - half_tile_height};
+  iso_tile_se : Vector3 = .{center_pos.x - half_tile_width, 0.0, center_pos.z + half_tile_height};
+  iso_tile_sw : Vector3 = .{center_pos.x + half_tile_width, 0.0, center_pos.z + half_tile_height};
+
+  // print("NW: %, NE: %, SE: %, SW: %\n", iso_tile_nw, iso_tile_ne, iso_tile_se, iso_tile_sw);
+
+  // Populate data
+  iso_tile.vertex_buffer_vertices_data[0]  = iso_tile_nw.x;
+  iso_tile.vertex_buffer_vertices_data[1]  = iso_tile_nw.y;
+  iso_tile.vertex_buffer_vertices_data[2]  = iso_tile_nw.z;
+
+  iso_tile.vertex_buffer_vertices_data[3]  = iso_tile_ne.x;
+  iso_tile.vertex_buffer_vertices_data[4]  = iso_tile_ne.y;
+  iso_tile.vertex_buffer_vertices_data[5]  = iso_tile_ne.z;
+
+  iso_tile.vertex_buffer_vertices_data[6]  = iso_tile_se.x;
+  iso_tile.vertex_buffer_vertices_data[7]  = iso_tile_se.y;
+  iso_tile.vertex_buffer_vertices_data[8]  = iso_tile_se.z;
+
+  iso_tile.vertex_buffer_vertices_data[9]  = iso_tile_sw.x;
+  iso_tile.vertex_buffer_vertices_data[10] = iso_tile_sw.y;
+  iso_tile.vertex_buffer_vertices_data[11] = iso_tile_sw.z;
+
+  iso_tile.vertex_buffer_colors_data[0]  = color.r;
+  iso_tile.vertex_buffer_colors_data[1]  = color.g;
+  iso_tile.vertex_buffer_colors_data[2]  = color.b;
+  iso_tile.vertex_buffer_colors_data[3]  = color.r;
+  iso_tile.vertex_buffer_colors_data[4]  = color.g;
+  iso_tile.vertex_buffer_colors_data[5]  = color.b;
+  iso_tile.vertex_buffer_colors_data[6]  = color.r;
+  iso_tile.vertex_buffer_colors_data[7]  = color.g;
+  iso_tile.vertex_buffer_colors_data[8]  = color.b;
+  iso_tile.vertex_buffer_colors_data[9]  = color.r;
+  iso_tile.vertex_buffer_colors_data[10] = color.g;
+  iso_tile.vertex_buffer_colors_data[11] = color.b;
+
+  // Line vertices
+  iso_tile.line_buffer_vertices_data[0]  = iso_tile_nw.x;
+  iso_tile.line_buffer_vertices_data[1]  = iso_tile_nw.y;
+  iso_tile.line_buffer_vertices_data[2]  = iso_tile_nw.z;
+
+  iso_tile.line_buffer_vertices_data[3]  = iso_tile_ne.x;
+  iso_tile.line_buffer_vertices_data[4]  = iso_tile_ne.y;
+  iso_tile.line_buffer_vertices_data[5]  = iso_tile_ne.z;
+
+  iso_tile.line_buffer_vertices_data[6]  = iso_tile_sw.x;
+  iso_tile.line_buffer_vertices_data[7]  = iso_tile_sw.y;
+  iso_tile.line_buffer_vertices_data[8]  = iso_tile_sw.z;
+
+  iso_tile.line_buffer_vertices_data[9]  = iso_tile_se.x;
+  iso_tile.line_buffer_vertices_data[10] = iso_tile_se.y;
+  iso_tile.line_buffer_vertices_data[11] = iso_tile_se.z;
+
+  // Line colors
+  iso_tile.line_buffer_colors_data[0]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[1]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[2]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[3]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[4]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[5]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[6]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[7]  = outline_color.g;
+  iso_tile.line_buffer_colors_data[8]  = outline_color.b;
+  iso_tile.line_buffer_colors_data[9]  = outline_color.r;
+  iso_tile.line_buffer_colors_data[10] = outline_color.g;
+  iso_tile.line_buffer_colors_data[11] = outline_color.b;
+
+  create_iso_tile_buffers(iso_tile);
+}
+
+render_iso_tile :: (iso_tile: *IsoTile) {
+  // Enabling attrib arrays
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  // Binding buffers - REAL vertices
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  // Binding buffers - REAL colors
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  // Draw arrays call - first triangle
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+
+
+  // Bind buffers - vertices - now with offset
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_vertices);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)(3 * size_of(GLfloat)));
+
+  // Bind buffers - colors - now with offset
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.vertex_buffer_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)(3 * size_of(GLfloat)));
+
+  // Draw arrays call - second triangle
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+  
+  // Draw lines - different primitive
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_vertices);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, iso_tile.line_buffer_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+  // Disabling attrib arrays
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+}
+
+Camera :: struct
+{
+	FLY_SPEED :: 10.0;
+	ROTATION_SPEED :: 0.3;
+	ROTATION_SMOOTHING :: 0.3;
+
+  move_input_keyboard : Vector3;
+  mouse_delta_input : Vector2;
+
+	position : Vector3;
+	euler_angles : Vector3;
+	rotation : Quaternion;
+	rotation_input : Vector2;
+	fov := 60.0;
+	transform := Matrix4_Identity;
+	view_matrix := Matrix4_Identity;
+	projection_matrix := Matrix4_Identity;
+	view_projection_matrix := Matrix4_Identity;
+}
+
+update_flying_camera :: (using camera : *Camera, delta_time : float)
+{
+	move_speed : float;
+        move_input := move_input_keyboard;
+        mouse_delta := mouse_delta_input;
+
+	if CONTROL_CAMERA {
+		move_speed = FLY_SPEED;
+		move_speed *= delta_time;
+		move_input = rotate (unit_vector (move_input), rotation);
+	}
+	position += move_input * move_speed;
+
+	rotation_input = lerp (rotation_input, mouse_delta, ROTATION_SMOOTHING);
+	delta := rotation_input * ROTATION_SPEED;
+	euler_angles.x += delta.x * PI / 180.0;
+	euler_angles.y += delta.y * PI / 180.0;
+	euler_angles.y = clamp (euler_angles.y, -80.0  * PI / 180.0, 80.0 * PI / 180.0);
+	yaw : Quaternion;
+	// I am not sure why I need to invert the axis of rotation...
+	set_from_axis_and_angle (*yaw, 0, -1, 0, euler_angles.x);
+	pitch : Quaternion;
+	set_from_axis_and_angle (*pitch, -1, 0, 0, euler_angles.y);
+	rotation = yaw * pitch;
+
+	transform = make_translation_matrix4 (position) * rotation_matrix (Matrix4, rotation);
+	view_matrix = inverse (transform);
+	// vx, vy, vw, vh := get_dimensions (g_window, false);
+	aspect_ratio := WINDOW_WIDTH / cast (float) WINDOW_HEIGHT;
+	projection_matrix = make_projection_matrix (fov * PI / 180.0, aspect_ratio, 0.1, 1000.0);
+	view_projection_matrix = projection_matrix * view_matrix;
+}
+
+Cube :: struct {
+  vertices_data : [6 * 3 * 6]GLfloat = GLfloat.[
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+
+    -0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5, -0.5,  0.5,
+
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5,  0.5,
+    -0.5,  0.5,  0.5,
+
+     0.5,  0.5,  0.5,
+     0.5,  0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5,  0.5,
+
+    -0.5, -0.5, -0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5, -0.5,  0.5,
+    -0.5, -0.5,  0.5,
+    -0.5, -0.5, -0.5,
+
+    -0.5,  0.5, -0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5,  0.5,
+     0.5,  0.5,  0.5,
+    -0.5,  0.5,  0.5,
+    -0.5,  0.5, -0.5,
+  ];
+  color_data : [6 * 3 * 6]GLfloat = GLfloat.[
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    // Bottom
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+    1.0, 0.0, 0.0,
+
+    // Top
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+  ];
+
+  vbo_vert : GLuint;
+  vbo_color : GLuint;
+}
+
+Triangle :: struct {
+  vertices_data : [9]GLfloat = GLfloat.[-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
+  color_data : [9]GLfloat = GLfloat.[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+
+  vbo_vert : GLuint;
+  vbo_color : GLuint;
+}
+
+Line :: struct {
+  start       : Vector3;
+  end         : Vector3;
+  start_color : Vector3;
+  end_color   : Vector3;
+
+  line_vbo_vertex : GLuint;
+  line_vbo_colors : GLuint;
+
+  line_data_vertex : [2]Vector3;
+  line_data_colors : [2]Vector3;
+}
+
+create_line_buffers :: (line: *Line) {
+
+  glGenBuffers(1, *line.line_vbo_vertex);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
+
+  glGenBuffers(1, *line.line_vbo_colors);
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_colors)), *line.line_data_colors, GL_DYNAMIC_DRAW);
+}
+
+populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
+  line.start       = start;
+  line.end         = end;
+  line.start_color = start_color;
+  line.end_color   = end_color;
+
+  line.line_data_vertex[0] = start;
+  line.line_data_vertex[1] = end;
+
+  line.line_data_colors[0] = start_color;
+  line.line_data_colors[1] = end_color;
+
+  create_line_buffers(line);
+}
+
+draw_line :: (line: *Line) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
+
+  glDrawArrays(GL_LINES, 0, 2);
+  
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+}
 
 // Shaders - for now here
 VERTEX_SHADER :: #string GLSL
@@ -39,10 +429,10 @@ VERTEX_SHADER :: #string GLSL
 
   out vec3 fragmentColor;
   
-  uniform mat4 MVP;
+  uniform mat4 u_view_projection;
 
   void main() {
-      gl_Position = MVP * vec4(vertexPosition_modelspace, 1);
+      gl_Position = u_view_projection * vec4(vertexPosition_modelspace, 1);
 
       fragmentColor = vertexColor;
   }
@@ -132,61 +522,6 @@ load_shaders :: () -> GLuint {
   return program_id;
 }
 
-Line :: struct {
-  start       : Vector3;
-  end         : Vector3;
-  start_color : Vector3;
-  end_color   : Vector3;
-
-  line_vbo_vertex : GLuint;
-  line_vbo_colors : GLuint;
-
-  line_data_vertex : [2]Vector3;
-  line_data_colors : [2]Vector3;
-}
-
-create_line_buffers :: (line: *Line) {
-
-  glGenBuffers(1, *line.line_vbo_vertex);
-  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_vertex)), *line.line_data_vertex, GL_DYNAMIC_DRAW);
-
-  glGenBuffers(1, *line.line_vbo_colors);
-  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
-  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(line.line_data_colors)), *line.line_data_colors, GL_DYNAMIC_DRAW);
-}
-
-populate_line :: (line: *Line, start: Vector3, end: Vector3, start_color: Vector3, end_color: Vector3) {
-  line.start       = start;
-  line.end         = end;
-  line.start_color = start_color;
-  line.end_color   = end_color;
-
-  line.line_data_vertex[0] = start;
-  line.line_data_vertex[1] = end;
-
-  line.line_data_colors[0] = start_color;
-  line.line_data_colors[1] = end_color;
-
-  create_line_buffers(line);
-}
-
-draw_line :: (line: *Line) {
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-
-  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_vertex);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
-
-  glBindBuffer(GL_ARRAY_BUFFER, line.line_vbo_colors);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
-
-  glDrawArrays(GL_LINES, 0, 2);
-  
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
-}
-
 // Helper function
 print_mat4 :: (name: string, mat: Matrix4) {
   print("  [ % ]\n", name);
@@ -196,190 +531,69 @@ print_mat4 :: (name: string, mat: Matrix4) {
   print("[%, %, %, %]\n\n", mat._41, mat._42, mat._43, mat._44); 
 }
 
-print_vec3 :: (name: string, vec: Vector3) {
-  print("  [ % ]\n", name);
-  print("[% % %]\n", vec.x, vec.y, vec.z);
-}
+render_triangle :: (using triangle: *Triangle) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
 
-create_projection_matrix :: (fov: float, aspect_ratio: float, near: float, far: float, delta_time: float) -> Matrix4 {
-  view_projection_matrix := Matrix4_Identity;
-  projection_matrix := Matrix4_Identity;
-  look_at_matrix := Matrix4_Identity;
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
-  // Changing something in view matrix
-  // view_matrix._14 = 0.0;
-  // view_matrix._24 = 0.0; // Going up Y 10 @BUG Y axis goes down right now
-  // view_matrix._34 = -10.0; // Going back Z 100
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
-  MAIN_CAMERA.view_matrix._14 += CAMERA_CONTROLS.move_input.x * delta_time;
-  MAIN_CAMERA.view_matrix._24 += CAMERA_CONTROLS.move_input.y * delta_time;
-  MAIN_CAMERA.view_matrix._34 += CAMERA_CONTROLS.move_input.z * delta_time;
-
-  /*
-  MAIN_CAMERA.view_matrix._13 += CAMERA_CONTROLS.move_input.x * delta_time;
-  MAIN_CAMERA.view_matrix._23 += CAMERA_CONTROLS.move_input.y * delta_time;
-  MAIN_CAMERA.view_matrix._33 += CAMERA_CONTROLS.move_input.z * delta_time;
-
-  MAIN_CAMERA.view_matrix._12 += CAMERA_CONTROLS.move_input.x * delta_time;
-  MAIN_CAMERA.view_matrix._22 += CAMERA_CONTROLS.move_input.y * delta_time;
-  MAIN_CAMERA.view_matrix._32 += CAMERA_CONTROLS.move_input.z * delta_time;
-  */
-
-  MAIN_CAMERA.eye.x += CAMERA_CONTROLS.move_input.x * delta_time;
-  MAIN_CAMERA.eye.y += CAMERA_CONTROLS.move_input.y * delta_time;
-  MAIN_CAMERA.eye.z += CAMERA_CONTROLS.move_input.z * delta_time;
-
-  eye : Vector3 = .{MAIN_CAMERA.eye.x, MAIN_CAMERA.eye.y, MAIN_CAMERA.eye.z};
-  center : Vector3 = .{0.0, 0.0, 0.0};
-  up : Vector3 = .{0.0, 1.0, 0.0};
-
-  // look_at_matrix = make_look_at_matrix(eye, center, up, true);
-
-  // Rotate view matrix
-  // euler_angles : Vector3;
-  // euler_angles = .{CAMERA_CONTROLS.rotate_input.x * PI / 180, CAMERA_CONTROLS.rotate_input.y * PI / 180, 0.0};
-  // view_rotate : Quaternion;
-
-  zaxis : Vector3 = normalize(center - eye);
-  xaxis : Vector3 = normalize(cross(zaxis, up));
-  yaxis : Vector3 = cross(xaxis, zaxis);
-
-  zaxis = -zaxis;
-
-  // Is it column major or row major?
-  // 1s column
-  look_at_matrix._11 = xaxis.x;
-  look_at_matrix._21 = yaxis.x;
-  look_at_matrix._31 = zaxis.x;
-  look_at_matrix._41 = 0;
-
-  // 2nd column
-  look_at_matrix._12 = xaxis.y;
-  look_at_matrix._22 = yaxis.y;
-  look_at_matrix._32 = zaxis.y;
-  look_at_matrix._42 = 0;
-
-  // 3rd column
-  look_at_matrix._13 = xaxis.z;
-  look_at_matrix._23 = yaxis.z;
-  look_at_matrix._33 = zaxis.z;
-  look_at_matrix._43 = 0;
+  glDrawArrays(GL_TRIANGLES, 0, 3);
   
-  // 4th column
-  look_at_matrix._14 = -dot(xaxis, eye);
-  look_at_matrix._24 = -dot(yaxis, eye);
-  look_at_matrix._34 = -dot(zaxis, eye);
-  look_at_matrix._44 = 1;
-
-  // Construction projection matrix
-  projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
-  projection_matrix._22 =  1 / (tan(fov / 2));
-  projection_matrix._33 = -1 * ((far + near)     / (far - near));
-  projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
-  projection_matrix._43 = -1;
-
-  view_projection_matrix = projection_matrix * look_at_matrix;
-  // view_projection_matrix = projection_matrix * MAIN_CAMERA.view_matrix;
-  // view_projection_matrix = inverse(look_at_matrix) * projection_matrix;
-
-  // print_mat4("View matrix", MAIN_CAMERA.view_matrix);
-  // print_mat4("Projection matrix", projection_matrix);
-  print_mat4("View projection matrix", view_projection_matrix);
-  // print_mat4("Lookat", look_at_matrix);
-
-  return view_projection_matrix;
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+  
 }
 
-building_mvp_matrix :: (delta_time: float) -> Matrix4 {
-  mvp_matrix := Matrix4_Identity;
-  look_at_matrix := Matrix4_Identity;
-  projection_matrix := Matrix4_Identity;
+render_cube :: (using cube: *Cube) {
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
 
-  // SOME VALUES FOR NOW
-  aspect_ratio := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
-  fov := 60.0;
-  near := 0.1;
-  far := 1000.0;
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
-  // Ortho
-  left := -10.0;
-  right := 10.0;
-  top := 10.0;
-  bottom := -10.0;
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, cast(*void)0);
 
-  // Build look-at matrix
-  // Up-vector (0, 1.0, 0)
-  up : Vector3 = .{0.0, 1.0, 0.0};
-  center : Vector3 = .{0.0, 0.0, 0.0};
-  eye : Vector3 = .{-10.0, 10.0, 10.0};
-
-  // LookAt RH - maybe use LH if it doesn't work?
-  f : Vector3 = normalize(center - eye);
-  s : Vector3 = normalize(cross(f, up));
-  u : Vector3 = cross(s, f);
-
-  print_vec3("f", f);
-  print_vec3("s", s);
-  print_vec3("u", u);
-
-  look_at_matrix._11 = s.x;
-  look_at_matrix._21 = s.y;
-  look_at_matrix._31 = s.z;
-  look_at_matrix._12 = u.x;
-  look_at_matrix._22 = u.y;
-  look_at_matrix._32 = u.z;
-  look_at_matrix._13 = -f.x;
-  look_at_matrix._23 = -f.y;
-  look_at_matrix._33 = -f.z;
-  look_at_matrix._14 = -dot(s, eye);
-  look_at_matrix._24 = -dot(u, eye);
-  look_at_matrix._34 =  dot(f, eye);
-
-  // Projection matrix
-  // projection_matrix._11 =  1 / (aspect_ratio * tan(fov / 2));
-  // projection_matrix._22 =  1 / (tan(fov / 2));
-  // projection_matrix._33 = -1 * ((far + near)     / (far - near));
-  // projection_matrix._34 = -1 * ((2 * far * near) / (far - near));
-  // projection_matrix._43 = -1;
-
-  tanHalfFovy := tan(fov / 2);
-
-  /*
-  projection_matrix._11 = 1 / (aspect_ratio * tanHalfFovy);
-  projection_matrix._22 = 1 / tanHalfFovy;
-  projection_matrix._33 = far / (near - far);
-  projection_matrix._34 = -1;
-  projection_matrix._43 = - (far * near) / (far - near);
-  projection_matrix._44 = 0;
-  */
-
-  /*
-  projection_matrix._11 = 1 / (aspect_ratio * tanHalfFovy);
-  projection_matrix._22 = 1 /  tanHalfFovy;
-  projection_matrix._33 =    -(far + near) / (far - near);
-  projection_matrix._34 = -1;
-  projection_matrix._43 = (-2 * far * near) / (far - near);
-  projection_matrix._44 = 0;
-  */
-
-  projection_matrix._11 = 2 / (right - left);
-  projection_matrix._22 = 2 / (top - bottom);
-  projection_matrix._33 = -2 / (far - near);
-  projection_matrix._41 = - (right + left) / (right - left);
-  projection_matrix._42 = - (top + bottom) / (top - bottom);
-  projection_matrix._43 = - (far + near) / (far - near);
-
-  print_mat4("Look at matrix", look_at_matrix);
-  print_mat4("Projection matrix", projection_matrix);
-  mvp_matrix = projection_matrix * look_at_matrix;
-  // mvp_matrix = look_at_matrix * projection_matrix;
-
-  return mvp_matrix;
+  glDrawArrays(GL_TRIANGLES, 0, 3 * 6 * 6);
+  
+  glDisableVertexAttribArray(0);
+  glDisableVertexAttribArray(1);
+  
 }
+
+create_buffers :: (using triangle: *Triangle) {
+  glGenBuffers(1, *vbo_vert);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), vertices_data.data, GL_STATIC_DRAW);
+
+  glGenBuffers(1, *vbo_color);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(color_data)), color_data.data, GL_STATIC_DRAW);
+
+  print("Vbo vert: %\n", vbo_vert);
+  print("Vbo color: %\n", vbo_color);
+}
+
+create_buffers :: (using cube: *Cube) {
+  glGenBuffers(1, *vbo_vert);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_vert);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(vertices_data)), vertices_data.data, GL_STATIC_DRAW);
+
+  glGenBuffers(1, *vbo_color);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
+  glBufferData(GL_ARRAY_BUFFER, size_of(type_of(color_data)), color_data.data, GL_STATIC_DRAW);
+
+  print("Vbo vert: %\n", vbo_vert);
+  print("Vbo color: %\n", vbo_color);
+}
+
 
 main :: () {
-  // Welcoming messages
-  print("Hello, longship-engine!\n");
+  print("Longship engine - CUBE test.\n");
 
   // Some start stuff
   #if OS == .WINDOWS {
@@ -423,6 +637,9 @@ main :: () {
   print("GL Vendor = %\n", to_string(glGetString(GL_VENDOR)));
   print("GL Version = %\n", to_string(glGetString(GL_VERSION)));
 
+  // Setting up OpenGL
+  glEnable(GL_DEPTH_TEST);
+
   // Defering stuff
   defer SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
   defer SDL_Quit();
@@ -437,9 +654,24 @@ main :: () {
 
   // Create shader program
   program_id := load_shaders();
-  
+
   // Get uniform location
-  matrix_id := glGetUniformLocation(program_id, "MVP");
+  view_projection_matrix_id := glGetUniformLocation(program_id, "u_view_projection");
+
+  // Create camera
+  flying_camera : Camera;
+  space_pushed := false;
+  mouse_delta : Vector2;
+
+  flying_camera.position = xyz (1, 1.3, 2.3);
+  flying_camera.euler_angles.x = 0 * PI / 180.0;
+  flying_camera.euler_angles.y = 0 * PI / 180.0;
+
+  // Create test cube
+  test_cube := New(Cube);
+
+  // Create test triangle buffers
+  create_buffers(test_cube);
 
   // Create lines (x y and z axis)
   x_lines          := New([21]Line);
@@ -470,50 +702,86 @@ main :: () {
   z_lines_view = <<z_lines;
   z_lines_parallel_view = <<z_lines_parallel;
 
-  line_spacing := 10.0;
+  line_spacing := 1.0;
 
   // X plane lines
-  line_spacing_start := -100.0;
+  line_spacing_start := -10.0;
   for line, i: x_lines_view {
-    populate_line(*x_lines_view[i], .{-100.0, 5.0, line_spacing_start}, .{100.0, 5.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
+    populate_line(*x_lines_view[i], .{-10.0, 0.0, line_spacing_start}, .{10.0, 0.0, line_spacing_start}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  line_spacing_start = -100.0;
+  line_spacing_start = -10.0;
   for line, i: x_lines_parallel_view {
-    populate_line(*x_lines_parallel_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, X_LINE_COLOR, X_LINE_COLOR);
+    populate_line(*x_lines_parallel_view[i], .{line_spacing_start, 0.0, -10.0}, .{line_spacing_start, 0.0, 10.0}, X_LINE_COLOR, X_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
   // Y plane lines
-  line_spacing_start = -100.0;
+  line_spacing_start = -10.0;
   for line, i: y_lines_view {
-    populate_line(*y_lines_view[i], .{line_spacing_start, -100.0, 0.0}, .{line_spacing_start, 100.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    populate_line(*y_lines_view[i], .{line_spacing_start, -10.0, 0.0}, .{line_spacing_start, 10.0, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  line_spacing_start = -100.0;
+  line_spacing_start = -10.0;
   for line, i: y_lines_parallel_view {
-    populate_line(*y_lines_parallel_view[i], .{-100.0, line_spacing_start, 0.0}, .{100.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
+    populate_line(*y_lines_parallel_view[i], .{-10.0, line_spacing_start, 0.0}, .{10.0, line_spacing_start, 0.0}, Y_LINE_COLOR, Y_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
   // Z plane lines
-  line_spacing_start = -100.0;
+  line_spacing_start = -10.0;
   for line, i: z_lines_view {
-    populate_line(*z_lines_view[i], .{line_spacing_start, 0.0, -100.0}, .{line_spacing_start, 0.0, 100.0}, Z_LINE_COLOR, Z_LINE_COLOR);
+    populate_line(*z_lines_view[i], .{0.0, line_spacing_start, -10.0}, .{0.0, line_spacing_start, 10.0}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  line_spacing_start = -100.0;
+  line_spacing_start = -10.0;
   for line, i: z_lines_parallel_view {
-    populate_line(*z_lines_parallel_view[i], .{0.0, -100.0, line_spacing_start}, .{0.0, 100.0, line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
+    populate_line(*z_lines_parallel_view[i], .{0.0, -10.0, line_spacing_start}, .{0.0, 10.0, line_spacing_start}, Z_LINE_COLOR, Z_LINE_COLOR);
     line_spacing_start += line_spacing;
   }
 
-  // Create view projection matrix
-  ASPECT_RATIO := WINDOW_WIDTH / cast(float) WINDOW_HEIGHT;
+  // Create test iso tiles
+  /*
+  test_iso_tile := New(IsoTile);
 
+  print("Test iso tile: %\n", test_iso_tile);
+  print("Test iso tile dereference: %\n", <<test_iso_tile);
+
+  populate_iso_tile(test_iso_tile, 0, .{0.3, 0.4, 0.5}, .{1.0, 1.0, 1.0}, .{2.0, 0.0, 0.0});
+
+  print("Test iso tile dereference: %\n", <<test_iso_tile);
+  */
+
+  // Create test iso tiles
+  test_iso_tiles_array := New([..]IsoTile);
+  // print("Test iso tiles array: %\n", test_iso_tiles_array);
+
+  id := 0;
+  for i: 0..ISO_TILESET_WIDTH - 1 {
+    for j: 0..ISO_TILESET_HEIGHT - 1 {
+      // print("Adding array with indexes: i - % j - %\n", i, j);
+      iso_tile := New(IsoTile);
+      populate_iso_tile(iso_tile,
+                        id,
+                        .{i / 100.0, j / 100.0, 0.8},
+                        .{1.0, 1.0, 1.0},
+                        .{cast(float)ISO_TILESET_X + i * ISO_TILE_WIDTH , 0.0, cast(float)ISO_TILESET_Z + j * ISO_TILE_HEIGHT});
+      id += 1;
+
+      array_add(test_iso_tiles_array, iso_tile);
+    }
+  }
+
+  // TEST - iterating over created IsoTiles
+  /*
+  for iso_tile, index: <<test_iso_tiles_array {
+    print("Iso tile: % - index: %\n", iso_tile, index);
+  }
+  */
+  
   while !QUIT {
     frame_start := current_time_monotonic();
 
@@ -527,27 +795,42 @@ main :: () {
             WINDOW_WIDTH = event.window.data1;
             WINDOW_HEIGHT = event.window.data2;
           }
+        case SDL_MOUSEMOTION;
+          if space_pushed {
+            mouse_delta_x = event.motion.xrel;
+            mouse_delta_y = event.motion.yrel;
+          }
         case SDL_KEYUP;
           if event.key.keysym.sym == SDLK_ESCAPE QUIT = true;
 
-          if event.key.keysym.sym == SDLK_a CAMERA_CONTROLS.move_input.x = 0;
-          if event.key.keysym.sym == SDLK_s CAMERA_CONTROLS.move_input.y = 0;
-          if event.key.keysym.sym == SDLK_d CAMERA_CONTROLS.move_input.x = 0;
-          if event.key.keysym.sym == SDLK_q CAMERA_CONTROLS.move_input.z = 0;
-          if event.key.keysym.sym == SDLK_w CAMERA_CONTROLS.move_input.y = 0;
-          if event.key.keysym.sym == SDLK_e CAMERA_CONTROLS.move_input.z = 0;
+          if event.key.keysym.sym == SDLK_a then flying_camera.move_input_keyboard.x = 0.0;
+          if event.key.keysym.sym == SDLK_d then flying_camera.move_input_keyboard.x = 0.0;
+          if event.key.keysym.sym == SDLK_s then flying_camera.move_input_keyboard.y = 0.0;
+          if event.key.keysym.sym == SDLK_w then flying_camera.move_input_keyboard.y = 0.0;
+          if event.key.keysym.sym == SDLK_q then flying_camera.move_input_keyboard.z = 0.0;
+          if event.key.keysym.sym == SDLK_e then flying_camera.move_input_keyboard.z = 0.0;
+
+          if event.key.keysym.sym == SDLK_SPACE {
+            space_pushed = false;
+            mouse_delta_x = 0;
+            mouse_delta_y = 0;
+          }
 
         case SDL_KEYDOWN;
+          if event.key.keysym.sym == SDLK_a then flying_camera.move_input_keyboard.x = -1.0;
+          if event.key.keysym.sym == SDLK_d then flying_camera.move_input_keyboard.x = 1.0;
+          if event.key.keysym.sym == SDLK_s then flying_camera.move_input_keyboard.y = -1.0;
+          if event.key.keysym.sym == SDLK_w then flying_camera.move_input_keyboard.y = 1.0;
+          if event.key.keysym.sym == SDLK_q then flying_camera.move_input_keyboard.z = -1.0;
+          if event.key.keysym.sym == SDLK_e then flying_camera.move_input_keyboard.z = 1.0;
 
-          if event.key.keysym.sym == SDLK_a CAMERA_CONTROLS.move_input.x = -1;
-          if event.key.keysym.sym == SDLK_s CAMERA_CONTROLS.move_input.y = -1;
-          if event.key.keysym.sym == SDLK_d CAMERA_CONTROLS.move_input.x = 1;
-          if event.key.keysym.sym == SDLK_q CAMERA_CONTROLS.move_input.z = -1;
-          if event.key.keysym.sym == SDLK_w CAMERA_CONTROLS.move_input.y = 1;
-          if event.key.keysym.sym == SDLK_e CAMERA_CONTROLS.move_input.z = 1;
+          if event.key.keysym.sym == SDLK_SPACE space_pushed = true;
       }
+
     }
-    // End of event loop
+    // Mouse
+    mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y);
+    // print("Mouse delta: %\n", mouse_delta);
 
     // Beggining of simulation/rendering loop
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
@@ -555,21 +838,17 @@ main :: () {
     // Shader program
     glUseProgram(program_id);
 
-    // Pass view_projection matrix
-    // view_projection_matrix := create_projection_matrix(60.0, ASPECT_RATIO, 0.1, 1000.0, delta_time);
-    view_projection_matrix := building_mvp_matrix(delta_time);
-    print_mat4("View projection matrix", view_projection_matrix);
-    glUniformMatrix4fv(matrix_id, 1, GL_TRUE, xx *view_projection_matrix);
+    // MVP matrix
+    // put view_projection_matrix from flying_camera here
+    flying_camera.mouse_delta_input = mouse_delta;
+    update_flying_camera(*flying_camera, delta_time);
+
+    glUniformMatrix4fv(view_projection_matrix_id, 1, GL_TRUE, xx *flying_camera.view_projection_matrix.coef[0][0]);
 
     // Clear screen
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Render lines
-    // draw_line(x_line_debug);
-    // draw_line(x_line_debug_z_plus);
-    // draw_line(x_line_debug_z_minus);
-
-    
+    // Render test triangle
     for line, i: x_lines_parallel_view {
       draw_line(*x_lines_parallel_view[i]);
     }
@@ -587,6 +866,16 @@ main :: () {
     }
     for line, i: z_lines_parallel_view {
       draw_line(*z_lines_parallel_view[i]);
+    }
+
+    // Test cube render
+    render_cube(test_cube);
+
+    // Test isotile render
+    // render_iso_tile(test_iso_tile);
+
+    for iso_tile: <<test_iso_tiles_array {
+      render_iso_tile(*iso_tile);
     }
 
     // Swap window - end of drawing stuff
