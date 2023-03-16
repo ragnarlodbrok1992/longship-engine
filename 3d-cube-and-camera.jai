@@ -21,12 +21,12 @@ X_LINE_COLOR : Vector3 = .{1.0, 0.0, 0.0};
 Y_LINE_COLOR : Vector3 = .{0.0, 1.0, 0.0};
 Z_LINE_COLOR : Vector3 = .{0.0, 0.0, 1.0};
 
-ISO_TILESET_WIDTH := 1000;
-ISO_TILESET_HEIGHT := 1000;
+ISO_TILESET_WIDTH := 100;
+ISO_TILESET_HEIGHT := 100;
 ISO_TILE_WIDTH := 1.0;
 ISO_TILE_HEIGHT := 1.0;
-ISO_TILESET_X := -500.0;
-ISO_TILESET_Y := -500.0;
+ISO_TILESET_X := -50.0;
+ISO_TILESET_Z := -50.0;
 
 Color :: struct {
   r : float;
@@ -103,7 +103,7 @@ populate_iso_tile :: (iso_tile: *IsoTile, id: int, color: Color, outline_color: 
   iso_tile_se : Vector3 = .{center_pos.x - half_tile_width, 0.0, center_pos.z + half_tile_height};
   iso_tile_sw : Vector3 = .{center_pos.x + half_tile_width, 0.0, center_pos.z + half_tile_height};
 
-  print("NW: %, NE: %, SE: %, SW: %\n", iso_tile_nw, iso_tile_ne, iso_tile_se, iso_tile_sw);
+  // print("NW: %, NE: %, SE: %, SW: %\n", iso_tile_nw, iso_tile_ne, iso_tile_se, iso_tile_sw);
 
   // Populate data
   iso_tile.vertex_buffer_vertices_data[0]  = iso_tile_nw.x;
@@ -213,7 +213,7 @@ render_iso_tile :: (iso_tile: *IsoTile) {
 
 Camera :: struct
 {
-	FLY_SPEED :: 1.0;
+	FLY_SPEED :: 10.0;
 	ROTATION_SPEED :: 0.3;
 	ROTATION_SMOOTHING :: 0.3;
 
@@ -667,6 +667,7 @@ main :: () {
   flying_camera.euler_angles.x = 0 * PI / 180.0;
   flying_camera.euler_angles.y = 0 * PI / 180.0;
 
+  // Create test cube
   test_cube := New(Cube);
 
   // Create test triangle buffers
@@ -743,6 +744,7 @@ main :: () {
   }
 
   // Create test iso tiles
+  /*
   test_iso_tile := New(IsoTile);
 
   print("Test iso tile: %\n", test_iso_tile);
@@ -751,6 +753,34 @@ main :: () {
   populate_iso_tile(test_iso_tile, 0, .{0.3, 0.4, 0.5}, .{1.0, 1.0, 1.0}, .{2.0, 0.0, 0.0});
 
   print("Test iso tile dereference: %\n", <<test_iso_tile);
+  */
+
+  // Create test iso tiles
+  test_iso_tiles_array := New([..]IsoTile);
+  // print("Test iso tiles array: %\n", test_iso_tiles_array);
+
+  id := 0;
+  for i: 0..ISO_TILESET_WIDTH - 1 {
+    for j: 0..ISO_TILESET_HEIGHT - 1 {
+      // print("Adding array with indexes: i - % j - %\n", i, j);
+      iso_tile := New(IsoTile);
+      populate_iso_tile(iso_tile,
+                        id,
+                        .{i / 100.0, j / 100.0, 0.8},
+                        .{1.0, 1.0, 1.0},
+                        .{cast(float)ISO_TILESET_X + i * ISO_TILE_WIDTH , 0.0, cast(float)ISO_TILESET_Z + j * ISO_TILE_HEIGHT});
+      id += 1;
+
+      array_add(test_iso_tiles_array, iso_tile);
+    }
+  }
+
+  // TEST - iterating over created IsoTiles
+  /*
+  for iso_tile, index: <<test_iso_tiles_array {
+    print("Iso tile: % - index: %\n", iso_tile, index);
+  }
+  */
   
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -842,7 +872,11 @@ main :: () {
     render_cube(test_cube);
 
     // Test isotile render
-    render_iso_tile(test_iso_tile);
+    // render_iso_tile(test_iso_tile);
+
+    for iso_tile: <<test_iso_tiles_array {
+      render_iso_tile(*iso_tile);
+    }
 
     // Swap window - end of drawing stuff
     SDL_GL_SwapWindow(MAIN_ENGINE_WINDOW);
