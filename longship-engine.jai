@@ -1,10 +1,14 @@
+// Basic JAI import
 #import "Basic";
 
+// Global JAI imports
 #import "Window_Creation";
 #import "Input";
 #import "Math";
 #import "SDL";
 #import "GL";
+
+// Local engine imports
 
 
 // Engine variables
@@ -594,6 +598,11 @@ create_buffers :: (using cube: *Cube) {
 
 main :: () {
   print("Longship engine - CUBE test.\n");
+  
+  // Debug prints - import path
+  // DEBUG - filepath?
+  // print("import path: %\n", import_path);
+  print("Filepath: %\n", #filepath);
 
   // Some start stuff
   #if OS == .WINDOWS {
