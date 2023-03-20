@@ -11,6 +11,11 @@ LongshipEngine:
 7. Create some UI elements - text rectangle, on/off button
 8. Render text on screen in SDL - create some example code
 9. Create UI panels - somewhat opaque panes with borders that group UI elements.
+10. 
+11. 
+12. 
+13. 
+14. 
 
 OpenGL:
 
