@@ -2,8 +2,6 @@
 #import "GL";
 #import "Math";
 
-#import,file "variables.jai";
-
 Color :: struct {
   r : float;
   g : float;

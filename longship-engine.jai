@@ -8,15 +8,15 @@
 #import "SDL";
 #import "GL";
 
-// Local engine imports
-#import,file "variables.jai";
-#import,file "camera.jai";
-#import,file "iso_tile.jai";
-#import,file "cube.jai";
-#import,file "triangle.jai";
-#import,file "line.jai";
-#import,file "shaders.jai";
-#import,file "util_prints.jai";
+// Local engine loads
+#load "variables.jai";
+#load "camera.jai";
+#load "iso_tile.jai";
+#load "cube.jai";
+#load "triangle.jai";
+#load "line.jai";
+#load "shaders.jai";
+#load "util_prints.jai";
 
 // Engine variables
 QUIT := false;

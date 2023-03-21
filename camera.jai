@@ -1,8 +1,6 @@
 #import "Math";
 #import "Basic";
 
-#import,file "variables.jai";
-
 Camera :: struct
 {
 	FLY_SPEED :: 10.0;
