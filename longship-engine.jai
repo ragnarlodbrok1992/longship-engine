@@ -7,6 +7,7 @@
 #import "Math";
 #import "SDL";
 #import "GL";
+Simp :: #import "Simp";
 
 // Local engine loads
 #load "variables.jai";
@@ -76,6 +77,12 @@ main :: () {
 
   // Setting up OpenGL
   glEnable(GL_DEPTH_TEST);
+
+  // Setup simp stuff for getting rect?
+  Simp.set_render_target(MAIN_ENGINE_WINDOW);
+
+  // @TODO: initializing fonts I think we should be doing here
+  // use function get_font_at_size
 
   // Defering stuff
   defer SDL_DestroyWindow(MAIN_ENGINE_WINDOW);
