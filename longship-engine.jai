@@ -30,7 +30,6 @@ main :: () {
   
   // Debug prints - import path
   // DEBUG - filepath?
-  // print("import path: %\n", import_path);
   print("Filepath: %\n", #filepath);
 
   // Some start stuff
@@ -188,20 +187,7 @@ main :: () {
   }
 
   // Create test iso tiles
-  /*
-  test_iso_tile := New(IsoTile);
-
-  print("Test iso tile: %\n", test_iso_tile);
-  print("Test iso tile dereference: %\n", <<test_iso_tile);
-
-  populate_iso_tile(test_iso_tile, 0, .{0.3, 0.4, 0.5}, .{1.0, 1.0, 1.0}, .{2.0, 0.0, 0.0});
-
-  print("Test iso tile dereference: %\n", <<test_iso_tile);
-  */
-
-  // Create test iso tiles
   test_iso_tiles_array := New([..]IsoTile);
-  // print("Test iso tiles array: %\n", test_iso_tiles_array);
 
   id := 0;
   for i: 0..ISO_TILESET_WIDTH - 1 {
@@ -218,13 +204,6 @@ main :: () {
       array_add(test_iso_tiles_array, iso_tile);
     }
   }
-
-  // TEST - iterating over created IsoTiles
-  /*
-  for iso_tile, index: <<test_iso_tiles_array {
-    print("Iso tile: % - index: %\n", iso_tile, index);
-  }
-  */
   
   while !QUIT {
     frame_start := current_time_monotonic();
@@ -274,7 +253,6 @@ main :: () {
     }
     // Mouse
     mouse_delta = xy(xx mouse_delta_x, xx mouse_delta_y);
-    // print("Mouse delta: %\n", mouse_delta);
 
     // Beggining of simulation/rendering loop
     glViewport(0, 0, xx WINDOW_WIDTH, xx WINDOW_HEIGHT);
@@ -315,9 +293,7 @@ main :: () {
     // Test cube render
     render_cube(test_cube);
 
-    // Test isotile render
-    // render_iso_tile(test_iso_tile);
-
+    // Rendering iso tiles
     for iso_tile: <<test_iso_tiles_array {
       render_iso_tile(*iso_tile);
     }
