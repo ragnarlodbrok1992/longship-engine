@@ -1,0 +1,19 @@
+# ENGINE DESIGN DOCUMENT
+
+## Prime usage for engine
+
+1. Iso-tile based city builder/Patrician clone/ship sailing for trading/procedurally generated world
+2. System to show inferfaces using own UI library or GetRect (depends what will be more easy to use).
+3. Assets loading library.
+
+Engine should be able to:
+1. Open window, create graphics pipelines, render stuff.
+2. Engine should be able to move data and configuration up and down through GUI.
+
+## Game requirements
+
+### Technical
+
+1. Working on IsoTiles - selection, modification, all that.
+2. Voxel-based water - animated!
+

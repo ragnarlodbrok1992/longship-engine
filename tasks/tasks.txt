@@ -1,8 +1,0 @@
-1. Move code to different files - camera.jai, iso_tile.jai, cube.jai, grid.jai
-  a. Grid code will have lines code as well - could be useful for debug purposes.
-2. Get familiar with GetRect examples and try to incorporate them in this engine.
-  a. Camera variables to be shown so we can work on camera movements and isometric shots.
-  b. Grid placement and sizing - dynamic resizing and rendering choices.
-3. Remove example cube.
-4. Rename file to longship-engine.jai.
-

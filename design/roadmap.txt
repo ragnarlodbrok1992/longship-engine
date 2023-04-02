@@ -1,0 +1,15 @@
+# ROADMAP
+
+## 02.04.2023
+
+Right now engine has basing camera, way to render some really primitive primitives.
+We can render isotiles, lines, make grid out of them.
+Engine lacks interactivity.
+
+## TASKS
+
+1. Implement way to render font on screen using OpenGL. Use it to write some debug text.
+2. Check out and implement GetRect UI. It should be in JAI beta archive available to study and
+   incorporate inside Longship Engine codebase.
+3. Create "voxel-like" water. Use algorithm to create a mesh somewhat irregular and animate "waves".
+
