@@ -12,8 +12,19 @@ Engine should be able to:
 
 ## Game requirements
 
+### Mechanical
+
+1. City simulation - inhabitants have their needs to have to be met.
+2. Economy! This is important. Money is not everything, people are important.
+3. Transportation using boats. Obvious if we want to make a Patrician like clone.
+
 ### Technical
 
 1. Working on IsoTiles - selection, modification, all that.
 2. Voxel-based water - animated!
+3. Ships sailing and floating.
+4. Wind mechanics!
+5. City building mechanics - building 3D voxel based structures, but not something that is 100 % voxel.
+   Maybe have more of a curvature?
+   Make it something like Patrician 3 style buildings.
 

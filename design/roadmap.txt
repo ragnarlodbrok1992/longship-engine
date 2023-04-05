@@ -6,6 +6,11 @@ Right now engine has basing camera, way to render some really primitive primitiv
 We can render isotiles, lines, make grid out of them.
 Engine lacks interactivity.
 
+## IDEAS
+
+1. Patrician 3 clone - since I don't want it to be exact like clone, it won't be.
+2. But will have ships and cities with docks - center of our gameplay.
+
 ## TASKS
 
 1. Implement way to render font on screen using OpenGL. Use it to write some debug text.
