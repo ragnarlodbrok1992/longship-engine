@@ -117,6 +117,7 @@ main :: () {
   create_buffers(test_cube);
 
   // Create lines (x y and z axis)
+  // @TODO ragnar - moving code to grid.jai
   x_lines          := New([21]Line);
   x_lines_parallel := New([21]Line);
   y_lines          := New([21]Line);

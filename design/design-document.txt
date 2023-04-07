@@ -9,6 +9,16 @@
 Engine should be able to:
 1. Open window, create graphics pipelines, render stuff.
 2. Engine should be able to move data and configuration up and down through GUI.
+   There won't be much of cmd-line data passing or input. Only setup configuration provided
+   in files. Also preparing own filetypes for storing data obviously.
+
+   This might mean preparing some tools to work on engine stuff and games.
+   
+3. Data-driven design. Structs, allocators, seperate functions to work on types.
+   Full JAI mode.
+
+4. Create, render, interact with iso_tiles, which are the basis of cities and ports.
+5. Create, render voxel-based water. Maybe try to add some "physics" of waves?
 
 ## Game requirements
 

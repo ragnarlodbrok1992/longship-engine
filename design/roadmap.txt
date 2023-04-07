@@ -10,6 +10,8 @@ Engine lacks interactivity.
 
 1. Patrician 3 clone - since I don't want it to be exact like clone, it won't be.
 2. But will have ships and cities with docks - center of our gameplay.
+3. Water machanics and ship-sailing - core idea for engine.
+4. Iso-tile simulation, rendering, interactivity.
 
 ## TASKS
 
@@ -17,4 +19,6 @@ Engine lacks interactivity.
 2. Check out and implement GetRect UI. It should be in JAI beta archive available to study and
    incorporate inside Longship Engine codebase.
 3. Create "voxel-like" water. Use algorithm to create a mesh somewhat irregular and animate "waves".
+4. Move code to different file - CLEANUP TASK.
+5. Iso_tile modification - create new iso_tile, modify existing, add/remove tiles.
 
