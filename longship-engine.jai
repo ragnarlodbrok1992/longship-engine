@@ -120,6 +120,12 @@ main :: () {
   for enum_values_as_s64(Grid_Type) {
     print("\t%: %\n", it, cast(Grid_Type) it);
   }
+  
+  // @TEST ragnar - creating new grid
+  z_plane_grid : *Grid;
+  z_plane_grid = create_grid(Grid_Type.Z_PLANE);
+  print("Grid: %\n", z_plane_grid);
+  print("Grid: %\n", z_plane_grid.type);
 
   // Create lines (x y and z axis)
   // @TODO ragnar - moving code to grid.jai
