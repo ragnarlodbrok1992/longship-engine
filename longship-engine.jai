@@ -15,9 +15,9 @@ Simp :: #import "Simp";
 #load "iso_tile.jai";
 #load "cube.jai";
 #load "triangle.jai";
-#load "line.jai";
 #load "shaders.jai";
 #load "util_prints.jai";
+#load "grid.jai";
 
 // Engine variables
 QUIT := false;
@@ -115,6 +115,11 @@ main :: () {
 
   // Create test triangle buffers
   create_buffers(test_cube);
+
+  // @TEST ragnar
+  for enum_values_as_s64(Grid_Type) {
+    print("\t%: %\n", it, cast(Grid_Type) it);
+  }
 
   // Create lines (x y and z axis)
   // @TODO ragnar - moving code to grid.jai
