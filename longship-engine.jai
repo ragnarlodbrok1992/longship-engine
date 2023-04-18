@@ -39,13 +39,13 @@ main :: () {
   }
 
   // Getting command line arguments
-  args := get_command_line_arguments();
-  if (args.count > 1) {
-    for args {
-      if (it_index == 0) continue;
+  cmd_line_args := get_command_line_arguments();
+  if (cmd_line_args.count > 1) {
+    for cmd_line_args {
+      if (it_index == 0) continue; // Ignoring name of binary
       // @TODO ragnar: add switch for program arguments
       // @TODO ragnar: add struct for program control variables
-      print("Additional argument: %\n", it);
+      print("Additional argument %: %\n", it_index, it);
     }
   }
 
